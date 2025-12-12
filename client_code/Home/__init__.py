@@ -156,9 +156,18 @@ class Home(HomeTemplate):
                 usage_data = anvil.server.call(
                     "get_ratings_count", user["user_id"]
                 )
-                max_trial_ratings = user.get("max_trial_ratings", 50)
+
+                # Refresh user data from database to get latest max_trial_ratings
+                user_row = app_tables.users.get(user_id=user["user_id"])
+                max_trial_ratings = (
+                    user_row["max_trial_ratings"]
+                    if user_row and user_row["max_trial_ratings"]
+                    else 50
+                )
+
                 print("total_count:", usage_data["total_count"])
                 print("today_count:", usage_data["today_count"])
+                print("max_trial_ratings:", max_trial_ratings)
 
                 alert(
                     content=C_TrialLimitationsPopup(
