@@ -255,14 +255,9 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     "get_ratings_count", user["user_id"]
                 )
 
-                # Refresh user data from database to get latest max_trial_ratings
-                from anvil.tables import app_tables
-
-                user_row = app_tables.users.get(user_id=user["user_id"])
-                max_trial_ratings = (
-                    user_row["max_trial_ratings"]
-                    if user_row and user_row["max_trial_ratings"]
-                    else 50
+                # Get latest max_trial_ratings from server
+                max_trial_ratings = anvil.server.call(
+                    "get_max_trial_ratings", user["user_id"]
                 )
 
                 warning_threshold = int(max_trial_ratings * 0.7)

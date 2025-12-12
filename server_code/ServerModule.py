@@ -227,3 +227,15 @@ def remove_user_from_customer(user_id):
     ).date()
     user["admin"] = True
     user["active"] = True
+
+
+@anvil.server.callable
+def get_max_trial_ratings(user_id):
+    """
+    Get the max_trial_ratings value for a user from the database.
+    Returns 50 as default if not set.
+    """
+    user_row = app_tables.users.get(user_id=user_id)
+    if user_row and user_row["max_trial_ratings"]:
+        return user_row["max_trial_ratings"]
+    return 50
