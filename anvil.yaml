@@ -60,6 +60,9 @@ db_schema:
     - admin_ui: {order: -0.1875, width: 200}
       name: plan
       type: string
+    - admin_ui: {order: -0.140625, width: 200}
+      name: max_trial_ratings
+      type: number
     server: full
     title: Users
   waiters:
