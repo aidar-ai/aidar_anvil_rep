@@ -12,7 +12,7 @@ _config_cache = {}
 
 # --- 3. WEBSOCKET CONFIGURATION ---
 # Simple flag to determine which WebSocket server to use
-USE_LOCAL_WEBSOCKET = False
+USE_LOCAL_WEBSOCKET = True
 
 # WebSocket server URLs
 LOCAL_WEBSOCKET_URL = "ws://localhost:8000"
