@@ -126,7 +126,7 @@ components:
       properties:
         align: center
         role: [txt_white_discreet, header-4]
-        text: Hot on
+        text: Hot on my Watchlist
       type: Label
     layout_properties: {grid_position: 'MRIQRW,EQZHSN WWNDHZ,TQYCES'}
     name: sec_hot
