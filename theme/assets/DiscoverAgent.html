@@ -15,7 +15,7 @@
     </div>
     <div class="section-contact-sidebar">
       <div class="contact-table">
-        <table> 
+        <table>
           <tr>
             <th>Status</th>
             <td>
@@ -100,7 +100,7 @@
       <i class="fas fa-robot" style="font-size: 20px; margin-right: 12px;"></i>
       <span>Scouting AI-Agent (Beta)</span>
     </div>
-    
+
     <div class="chat-container">
       <div class="chat-messages" id="chat-messages">
         <!-- Initial welcome message -->
@@ -111,7 +111,7 @@
           </div>
         </div>
 
-          <!-- User message 
+        <!-- User message 
           <div class="message user">
             <div class="message-time">11:46 AM</div>
             <div class="message-content">
@@ -151,7 +151,7 @@
     </div>
 
   </div>
-  
+
 </div>
 
 </div>
@@ -175,16 +175,17 @@
 <!-- FOOTER -->
 <div class="footer">
   <div class="footer-slot" anvil-slot="footer-slot">
-    <div class="placeholder anvil-designer-only" anvil-if-slot-empty="footer-slot" anvil-drop-here>Drop a FlowPanel or Label or Link Component here</div>
+    <div class="placeholder anvil-designer-only" anvil-if-slot-empty="footer-slot" anvil-drop-here>Drop a FlowPanel or
+      Label or Link Component here</div>
   </div>
-</div> 
+</div>
 
 
 <script>
   // Global server function caller - available anywhere
-  window.callServerFunction = async function(functionName, ...args) {
+  window.callServerFunction = async function (functionName, ...args) {
     console.log(`[callServerFunction] Attempting to call ${functionName} with args:`, args);
-    
+
     try {
       // Method 1: Direct anvil.server.call
       if (typeof anvil !== 'undefined' && anvil.server && typeof anvil.server.call === 'function') {
@@ -193,7 +194,7 @@
         console.log(`[callServerFunction] Success via anvil.server.call:`, result);
         return result;
       }
-      
+
       // Method 2: window.anvil.call without this context
       if (typeof window.anvil !== 'undefined' && typeof window.anvil.call === 'function') {
         console.log(`[callServerFunction] Trying window.anvil.call without context`);
@@ -201,7 +202,7 @@
         console.log(`[callServerFunction] Success via window.anvil.call:`, result);
         return result;
       }
-      
+
       // Method 3: Form instance if available
       if (window.formInstance && typeof window.formInstance[functionName] === 'function') {
         console.log(`[callServerFunction] Trying formInstance.${functionName}`);
@@ -209,7 +210,7 @@
         console.log(`[callServerFunction] Success via formInstance:`, result);
         return result;
       }
-      
+
       // Method 4: Try direct access to server module if available
       if (window.ServerModule && typeof window.ServerModule[functionName] === 'function') {
         console.log(`[callServerFunction] Trying ServerModule.${functionName}`);
@@ -217,7 +218,7 @@
         console.log(`[callServerFunction] Success via ServerModule:`, result);
         return result;
       }
-      
+
       console.error(`[callServerFunction] All methods failed to call ${functionName}`);
       return null;
     } catch (err) {
@@ -230,17 +231,17 @@
   if (!window._originalWebSocketManager) {
     window._originalWebSocketManager = window.WebSocketManager;
   }
-  
+
   // Define WebSocket URL function that uses the Python-configured base URL
-  window.getWebSocketUrl = function(sessionId) {
+  window.getWebSocketUrl = function (sessionId) {
     // This will be replaced by Python code that injects the correct base URL
     // Default to production URL if not set
-    const baseUrl = (typeof window.WEBSOCKET_BASE_URL !== 'undefined') 
-      ? window.WEBSOCKET_BASE_URL 
+    const baseUrl = (typeof window.WEBSOCKET_BASE_URL !== 'undefined')
+      ? window.WEBSOCKET_BASE_URL
       : "wss://api.aidar.ai";
     return baseUrl + "/ws/" + sessionId;
   };
-  
+
   // Only declare WebSocketManager if it doesn't already exist or needs redefinition
   if (typeof window._originalWebSocketManager === 'undefined') {
     window.WebSocketManager = class WebSocketManager {
@@ -249,7 +250,7 @@
       // Handles all WebSocket communication and chat interface management.
       // Manages connection lifecycle, message handling, and UI updates.
       // =====================================================================
-      
+
       /**
        * WebSocketManager handles the WebSocket connection and chat interface.
        * 
@@ -270,7 +271,7 @@
       // 1. Initialization
       constructor() {
         console.log('[WebSocketManager] Class WebSocketManager created');
-        
+
         // Connection state tracking
         this.isConnecting = false;
         this.isUpdatingModelId = false;
@@ -279,7 +280,7 @@
         // get model_id and url_artist_id from sessionStorage
         const storedModelIdRaw = sessionStorage.getItem('model_id');
         const storedUrlArtistId = sessionStorage.getItem('url_artist_id');
-        
+
         // If we have a valid id, use it; otherwise, generate a random model_id
         const normalizedStoredModelId = this.normalizeId(storedModelIdRaw);
         if (normalizedStoredModelId) {
@@ -293,13 +294,13 @@
         } else {
           this.url_artist_id = null;
         }
-        
+
         // Use the model_id for session ID
         this.sessionId = 'session-' + this.model_id;
         // Keep model_id in sessionStorage synchronized
         sessionStorage.setItem('model_id', this.model_id);
         console.log('[WebSocketManager] Session ID:', this.sessionId);
-        
+
         this.chatContainer = document.querySelector('.chat-container');
         this.chatMessages = document.getElementById('chat-messages');
         this.chatInput = document.getElementById('chat-input');
@@ -322,7 +323,7 @@
           EXTENDED_CREATE_AGENT: 'extended_create_agent'
         };
         this.STAGE = STAGE;
-        
+
         // Determine initial stage based on model_id and url_artist_id        
         if (this.model_id && this.url_artist_id && this.url_artist_id !== 'None') {
           this.stage = STAGE.NORMAL;
@@ -332,37 +333,37 @@
           this.stage = STAGE.CREATE_AGENT;
         }
         console.log('[WebSocketManager] Initial - stage:', this.stage, 'model_id:', this.model_id, 'url_artist_id:', this.url_artist_id);
-        
+
         // Get WebSocket URL using the global function
         this.wsUrl = window.getWebSocketUrl(this.sessionId);
-        
+
         console.log('[WebSocketManager] Using WebSocket URL:', this.wsUrl);
-        
+
         // Bind methods that will be used as event handlers
         this.sendMessage = this.sendMessage.bind(this);
-        
+
         // Check if the URL is valid
         try {
           new URL(this.wsUrl);
         } catch (e) {
           console.error('[WebSocketManager] Invalid WebSocket URL:', e);
         }
-        
+
         // Initialize connection
         this.connect();
       }
-      
+
       // =====================================================================
       // 2. Message History Loading
       // =====================================================================
-      
+
       /**
        * Loads and displays message history
        * @param {Array|string} messages - Array of message objects or JSON string
        */
       loadMessageHistory(messages) {
         console.log('[loadMessageHistory] Loading message history INNER CLASS:', messages);
-        
+
         // Parse messages if they're a string
         if (typeof messages === 'string') {
           try {
@@ -372,30 +373,30 @@
             return;
           }
         }
-        
+
         if (!Array.isArray(messages)) {
           console.error('[loadMessageHistory] Invalid messages format, expected array:', messages);
           return;
         }
-        
+
         if (this.isLoadingHistory) {
           console.log('[loadMessageHistory] Message loading already in progress');
           return;
         }
-        
+
         this.isLoadingHistory = true;
-        
+
         try {
           console.log(`[loadMessageHistory] Processing ${messages.length} messages from history`);
-          
+
           // Sort messages by timestamp (oldest first)
           const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
-          
+
           sortedMessages.forEach(msg => {
             console.log('[loadMessageHistory] Processing message:', msg);
-            
+
             // Handle different message types
-            switch(msg.type) {
+            switch (msg.type) {
               case 'text_chunk':
                 if (msg.direction === 'out') {
                   this.addAgentMessage(msg.content || '');
@@ -412,35 +413,35 @@
                   this.addAgentMessage(msg.content || '');
                 }
                 break;
-                
+
               case 'artist_info':
                 // Handle artist information display
                 if (msg.data) {
                   this.handleArtistInfo({ data: msg.data });
                 }
                 break;
-                
+
               case 'popularity_range_info':
                 // Handle popularity range information display
                 if (msg.data) {
                   this.handlePopularityRangeInfo({ data: msg.data });
                 }
                 break;
-                
+
               case 'artist_reference':
                 // Handle artist reference added confirmation
                 if (msg.data) {
                   this.handleArtistReference({ data: msg.data });
                 }
                 break;
-                
+
               case 'filters_info':
                 // Handle filter information display
                 if (msg.data) {
                   this.handleFiltersInfo({ data: msg.data });
                 }
                 break;
-                
+
               case 'genre_sub_scores':
                 // Handle genre sub scores display
                 if (msg.data) {
@@ -453,7 +454,7 @@
                   this.handleContributionWeights({ data: msg.data, fromHistory: true });
                 }
                 break;
-                
+
               default:
                 console.warn('[loadMessageHistory] Unknown message type:', msg.type, msg);
                 // For unknown types, still check direction to avoid showing user messages as system messages
@@ -466,10 +467,10 @@
                 }
             }
           });
-          
+
           this.removeStatusIndicator();
           console.log('[loadMessageHistory] Finished loading message history');
-          
+
         } catch (error) {
           console.error('[loadMessageHistory] Error loading message history:', error);
           this.addSystemMessage('Failed to load message history');
@@ -477,7 +478,7 @@
           this.isLoadingHistory = false;
         }
       }
-      
+
       // =====================================================================
       // 3. Core WebSocket Methods
       // =====================================================================
@@ -491,14 +492,14 @@
           socketState: this.socket ? this.socket.readyState : 'no socket',
           messageQueueLength: this.messageQueue.length
         });
-        
+
         // If already connected, do nothing
         if (this.isConnected && this.socket && this.socket.readyState === WebSocket.OPEN) {
           console.log('[connect] Already connected, processing message queue');
           this.processMessageQueue();
           return;
         }
-        
+
         // If already connecting, just wait for the connection
         if (this.socket) {
           console.log('[connect] Closing existing socket');
@@ -537,7 +538,7 @@
             console.log('[connect] Connection closed:', event);
             this.isConnected = false;
             this.isConnecting = false;
-            
+
             if (event.wasClean && event.code === 1000) {
               console.log('[connect] Normal connection closure');
             } else if (this.wasConnectedBeforeError && !this.reconnectTimeout) {
@@ -551,19 +552,19 @@
           this.handleError('Failed to connect to WebSocket server');
         }
       }
-      
+
       // Attempt to reconnect to the WebSocket server
       attemptReconnect() {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
           this.addSystemMessage('Failed to reconnect. Please refresh the page to try again.');
           return;
         }
-        
+
         const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000); // Cap at 30s
         console.log(`[attemptReconnect] Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
-        
+
         this.reconnectAttempts++;
-        
+
         this.reconnectTimeout = setTimeout(() => {
           if (!this.isConnected && !this.isUpdatingModelId) {
             console.log('[attemptReconnect] Reconnecting...');
@@ -573,15 +574,15 @@
           }
         }, delay);
       }
-      
-      
+
+
       // -----------------------------------------
       /* 3. Message Handling */
       // Send message to the server or cancel current execution
       sendMessage() {
         try {
           console.log('[sendMessage] sendMessage() called');
-          
+
           // If we're processing AND the socket is connected, this is a cancel request
           // This prevents cancellation during the connection process
           if (this.stage === this.STAGE.NORMAL && this.isProcessingCurrent && this.isProcessingCurrent() && this.isConnected) {
@@ -589,13 +590,13 @@
             this.cancelExecution();
             return;
           }
-          
+
           const message = this.chatInput.value.trim();
           if (!message) {
             console.log('[sendMessage] Empty message, ignoring');
             return;
           }
-          
+
           console.log('[sendMessage] Adding user message to chat');
           this.addUserMessage(message);
           this.chatInput.value = '';
@@ -609,7 +610,7 @@
 
           if (this.stage === this.STAGE.CREATE_AGENT) {
             console.log('[sendMessage] Create agent mode');
-            
+
             const initialQuestion = document.querySelector('.initial-creation-question');
             const classicalCreationLink = document.querySelector('.agent-classical-creation-link');
             const chatContainer = document.querySelector('.chat-container');
@@ -620,21 +621,21 @@
               initialQuestion.classList.add('hide-animation');
               classicalCreationLink.classList.add('hide-animation');
               chatInputContainer.classList.add('hide-animation');
-              
+
               // After hide animation completes (1.5s)
               setTimeout(() => {
                 // 2. Remove the question element completely
                 initialQuestion.remove();
                 classicalCreationLink.remove();
-                
+
                 // 3. Remove initial creation class from chat container and reset input container
                 chatContainer.classList.remove('initial-creation');
                 chatInputContainer.classList.remove('hide-animation');
                 chatInputContainer.style.transform = ''; // Reset transform
-                
+
                 // 4. Add show animation to chat container
                 chatContainer.classList.add('show-animation');
-                
+
                 // 5. Clean up after animation completes
                 setTimeout(() => {
                   chatContainer.classList.remove('show-animation');
@@ -646,7 +647,7 @@
           // Extended create agent mode
           if (this.stage === this.STAGE.EXTENDED_CREATE_AGENT) {
             console.log('[sendMessage] Extended create agent mode');
-            
+
             // do nothing
           }
 
@@ -673,17 +674,17 @@
             agent_id: this.model_id,
             request_id: requestId
           };
-          
+
           console.log('[sendMessage] Prepared message:', messageData);
 
           // Check WebSocket state
           const socketReady = this.socket && this.socket.readyState === WebSocket.OPEN;
           console.log(`[sendMessage] WebSocket state: ${this.socket ? this.socket.readyState : 'null'}, ` +
-                     `isConnected: ${this.isConnected}, socketReady: ${socketReady}`);
+            `isConnected: ${this.isConnected}, socketReady: ${socketReady}`);
 
           // Update our internal state to match actual socket state
           this.isConnected = socketReady;
-          
+
           // Send or queue the message
           if (socketReady) {
             console.log('[sendMessage] Sending message via WebSocket');
@@ -730,11 +731,11 @@
         try {
           const message = JSON.parse(event.data);
           console.log('[handleMessage] Received message:', message);
-          
+
           // Filter messages to prevent cross-agent interference
           // Since session_id = 'session-' + agent_id, we can use either for filtering
           const messageAgentId = message.agent_id || (message.session_id ? message.session_id.replace('session-', '') : null);
-          
+
           // Convert both to strings for comparison to handle type mismatches
           if (messageAgentId && this.model_id && String(messageAgentId) !== String(this.model_id)) {
             // Allow agent creation messages to update the current agent context
@@ -746,7 +747,7 @@
               console.log(`[handleMessage] Allowing ${message.type} to update agent context from ${this.model_id} to ${messageAgentId}`);
             }
           }
-          
+
           // Route messages to appropriate handlers
           switch (message.type) {
 
@@ -808,7 +809,7 @@
             case 'status_update':
               this.handleStatusUpdate(message);
               break;
-            
+
             default:
               console.warn('[handleMessage] Unknown message type:', message.type);
               // Fallback: if content is a string, show it to avoid losing messages silently
@@ -830,9 +831,9 @@
           console.log('[processMessageQueue] Message queue empty, nothing to process');
           return;
         }
-        
+
         console.log('[processMessageQueue] Processing message queue with', this.messageQueue.length, 'messages');
-        
+
         // Important: Only set isProcessing=true AFTER we've successfully sent the messages
         // This prevents accidental cancellation during connection but before processing starts
         while (this.messageQueue.length > 0 && this.isConnected) {
@@ -856,7 +857,7 @@
       handleTextChunk(message) {
         try {
           console.log('[handleTextChunk] Received text chunk:', message);
-          
+
           if (message.content && typeof message.content === 'string') {
             this.addAgentMessage(message.content);
           }
@@ -864,14 +865,14 @@
           console.error('[handleTextChunk] Error processing text chunk:', error);
         }
       }
-      
+
 
       // Handle cancellation confirmation from backend
       handleCancellationConfirmed(message) {
         console.log('[handleCancellationConfirmed] Backend confirmed cancellation:', message);
         this.removeStatusIndicator();
         this.hideCancellingState();
-        
+
         // Disable any active genre sub-scores
         const activeGenreScores = document.querySelectorAll('.message.genre-sub-scores');
         activeGenreScores.forEach(genreContainer => {
@@ -899,7 +900,7 @@
       // Handle status updates from backend
       handleStatusUpdate(message) {
         console.log('[handleStatusUpdate] Status update received:', message);
-        
+
         // Handle cancellation status updates
         if (message.status === 'cancelling_pending') {
           this.showCancellingState(message.content);
@@ -908,7 +909,7 @@
           this.hideCancellingState();
           // return;
         }
-        
+
         // Always ensure we have a visible status indicator for status updates
         if (message.content) {
           // Find existing status indicator in DOM or create one
@@ -917,7 +918,7 @@
             this.showStatusIndicator();
             statusIndicator = this.statusIndicator;
           }
-          
+
           if (statusIndicator) {
             statusIndicator.textContent = message.content;
             console.log('[handleStatusUpdate] Updated status indicator to:', message.content);
@@ -929,11 +930,11 @@
           }
         }
       }
-      
+
       // Show cancelling state with rotating button
       showCancellingState(content) {
         console.log('[showCancellingState] Showing cancelling state');
-        
+
         // Show status update in status indicator
         if (content) {
           // Update existing status indicator or create one without changing button state
@@ -944,7 +945,7 @@
             this.statusIndicator = document.createElement('div');
             this.statusIndicator.className = 'message status-indicator';
             this.statusIndicator.textContent = content;
-            
+
             const messagesContainer = document.getElementById('chat-messages');
             if (messagesContainer) {
               messagesContainer.appendChild(this.statusIndicator);
@@ -952,44 +953,44 @@
             }
           }
         }
-        
+
         // Update button to rotating cancel state
         if (this.sendButton) {
           // Clean all old states and set cancelling state
           this.sendButton.classList.remove('has-text', 'btn-processing');
           this.sendButton.classList.add('btn-cancelling');
           this.sendButton.disabled = true;
-          
+
           console.log('[showCancellingState] Button state set to cancelling:', this.sendButton.className);
         }
       }
-      
+
       // Hide cancelling state and restore normal UI
       hideCancellingState() {
         console.log('[hideCancellingState] Hiding cancelling state');
-        
+
         if (this.sendButton) {
           console.log('[hideCancellingState] Button classes before cleanup:', this.sendButton.className);
-          
+
           // First phase: Stop rotation but keep square (switch to processing state)
           this.sendButton.classList.remove('btn-cancelling');
           this.sendButton.classList.add('btn-processing');
-          
+
           console.log('[hideCancellingState] Stopped rotation, showing square:', this.sendButton.className);
-          
+
           // Second phase: After brief moment, restore to normal state
           setTimeout(() => {
             console.log('[hideCancellingState] Restoring to normal state');
             this.sendButton.classList.remove('btn-processing', 'has-text');
             this.sendButton.disabled = false;
-            
+
             // Reset processing state to allow new inputs
             if (this.setProcessingCurrent) {
               this.setProcessingCurrent(false);
             } else {
               this.isProcessing = false;
             }
-            
+
             console.log('[hideCancellingState] Final state:', this.sendButton.className);
           }, 300);
 
@@ -1001,7 +1002,7 @@
       // Handle artist information
       handleArtistInfo(message) {
         console.log('[handleArtistInfo] Artist info received:', message);
-        
+
         if (message.data) {
           const artist = message.data;
           const artistId = artist.artist_id || '';
@@ -1017,12 +1018,12 @@
             return num.toString();
           };
           const followers = formatFollowers(artist.followers);
-          
+
           // Create artist message element with artist class
           const messageDiv = document.createElement('a');
           messageDiv.href = `#agent_artists?artist_id=${encodeURIComponent(artistId)}`;
           messageDiv.className = 'message artist';
-          
+
           messageDiv.innerHTML = `
             <div class="agent-artist-image" style="background-image: url('${this.escapeHtml(imageUrl)}')"></div>
             <div class="artist-info">
@@ -1030,7 +1031,7 @@
               <div class="artist-followers">${followers} Spotify followers</div>
             </div>
           `;
-          
+
           this.chatMessages.appendChild(messageDiv);
           this.scrollToBottom();
         } else {
@@ -1050,7 +1051,7 @@
           const messageDiv = document.createElement('a');
           messageDiv.href = ``;
           messageDiv.className = 'message popularity-range';
-          
+
           messageDiv.innerHTML = `
             <div class="popularity-range-desc">Popularity range set to:</div>
             <div class="popularity-range-content">
@@ -1058,14 +1059,14 @@
               <div class="popularity-action">POP<br>RANGE</div>
             </div>
           `;
-          
+
           this.chatMessages.appendChild(messageDiv);
           this.scrollToBottom();
         } else {
           this.addSystemMessage(message.content || 'Received popularity range information');
         }
       }
-      
+
       // Handle artist information
       handleArtistReference(message) {
         console.log('[handleArtistReference] Artist reference received:', message);
@@ -1119,12 +1120,11 @@
         if (message.data && message.data.memories_list && Array.isArray(message.data.memories_list)) {
           const memories = message.data.memories_list;
           if (memories.length === 0) return;
-          
+
           // Create message element with filter class
-          const messageDiv = document.createElement('a');
-          messageDiv.href = '';
+          const messageDiv = document.createElement('div');
           messageDiv.className = 'message filter';
-          
+
           // Create list items for each memory with bullet points
           const memoryItems = memories.map(memory => `
             <div class="filter-item">
@@ -1132,14 +1132,14 @@
               <span class="filter-value">${this.escapeHtml(memory)}</span>
             </div>
           `).join('');
-          
+
           messageDiv.innerHTML = `
             <div class="filter-desc">Filter${memories.length > 1 ? 's' : ''} set to:</div>
             <div class="filter-content">
               ${memoryItems}
             </div>
           `;
-          
+
           this.chatMessages.appendChild(messageDiv);
           this.scrollToBottom();
         } else {
@@ -1150,7 +1150,7 @@
       // Handle genre sub scores information
       handleGenreSubScores(message) {
         console.log('[handleGenreSubScores] Genre sub scores information received:', message);
-        
+
         // Helper function to generate AI auto info message HTML
         const getAiAutoInfoMessageHTML = () => {
           return `
@@ -1166,7 +1166,7 @@
             </div>
           `;
         };
-        
+
         // Update status indicator to show waiting for confirmation
         if (this.statusIndicator) {
           this.statusIndicator.textContent = 'Waiting for user confirmation';
@@ -1174,67 +1174,67 @@
 
         if (message.data && message.data.results && Array.isArray(message.data.results)) {
           const results = message.data.results;
-          
+
           // Special case: Auto mode with no data - show info box instead of returning
           if (results.length === 0 && message.data.mode === 'auto') {
             // Create proper genre element structure
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message genre-sub-scores';
-            
+
             const mainContainer = document.createElement('div');
             mainContainer.className = 'genre-scores-container';
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'genre-scores-content';
             contentDiv.innerHTML = getAiAutoInfoMessageHTML();
-            
+
             // Create legend
             const legend = document.createElement('div');
             legend.className = 'genre-slider-legend';
             legend.innerHTML = '<div class="increasing-fit">increasing fit</div>';
-            
+
             // Create show more link (hidden)
             const showMoreLink = document.createElement('a');
             showMoreLink.textContent = 'show more genres';
             showMoreLink.className = 'show-more-genres';
             showMoreLink.style.display = 'none';
-            
+
             // Create button container with toggle set to auto
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'genre-button-container';
-            
+
             const toggleContainer = document.createElement('div');
             toggleContainer.className = 'genre-toggle-container';
-            
+
             const toggleOptions = document.createElement('div');
             toggleOptions.className = 'genre-toggle-options';
-            
+
             const manualOption = document.createElement('div');
             manualOption.className = 'genre-toggle-option';
             manualOption.textContent = 'manual';
-            
+
             const aiAutoOption = document.createElement('div');
             aiAutoOption.className = 'genre-toggle-option active';
             aiAutoOption.textContent = 'AI auto';
-            
+
             const confirmButton = document.createElement('button');
             confirmButton.className = 'genre-button confirm-button';
             confirmButton.textContent = 'confirm';
-            
+
             // Assemble toggle options
             toggleOptions.appendChild(manualOption);
             toggleOptions.appendChild(aiAutoOption);
             toggleContainer.appendChild(toggleOptions);
             buttonContainer.appendChild(toggleContainer);
             buttonContainer.appendChild(confirmButton);
-            
+
             // Assemble everything
             mainContainer.appendChild(contentDiv);
             mainContainer.appendChild(legend);
             mainContainer.appendChild(showMoreLink);
             mainContainer.appendChild(buttonContainer);
             messageDiv.appendChild(mainContainer);
-            
+
             // Disable controls if loading from history
             if (message.fromHistory) {
               confirmButton.style.display = 'none';
@@ -1243,156 +1243,156 @@
               aiAutoOption.style.pointerEvents = 'none';
               aiAutoOption.style.opacity = '0.7';
             }
-            
+
             // Add to chat and scroll
             this.chatMessages.appendChild(messageDiv);
             this.scrollToBottom();
             return;
           }
-          
+
           if (results.length === 0) return;
-          
+
           // Store all results but initially show only the first 5
           const allResults = [...results];
           const visibleResults = allResults.slice(0, 5);
           let visibleCount = visibleResults.length; // Define visibleCount variable to track how many sliders are visible
-          
+
           // Global variable to track visibility state across modes
           if (typeof window.genreVisibilityState === 'undefined') {
             window.genreVisibilityState = visibleCount;
           }
-          
+
           // Create message element with genre-sub-scores class
           const messageDiv = document.createElement('div');
           messageDiv.className = 'message genre-sub-scores';
-          
+
           // Create the main container
           const mainContainer = document.createElement('div');
           mainContainer.className = 'genre-scores-container';
-          
+
           // Create content div for genre sliders
           const contentDiv = document.createElement('div');
           contentDiv.className = 'genre-scores-content';
-          
+
           // Function to create and add genre sliders
           const createGenreSliders = (results, container) => {
             results.forEach(result => {
               const [genre, score] = result;
               const genreName = Array.isArray(genre) ? genre[1] : genre; // Get sub genre name
-              
+
               // Create genre item container
               const genreItem = document.createElement('div');
               genreItem.className = 'genre-score-item';
-              
+
               // Create genre name element
               const genreNameEl = document.createElement('div');
               genreNameEl.className = 'genre-name';
               genreNameEl.textContent = genreName;
               genreItem.appendChild(genreNameEl);
-              
+
               // Create slider container
               const sliderContainer = document.createElement('div');
               sliderContainer.className = 'genre-slider-container';
-              
+
               // Create slider
               const slider = document.createElement('div');
               slider.className = 'genre-slider';
-              
+
               // Create track
               const track = document.createElement('div');
               track.className = 'genre-slider-track';
-              
+
               // Create progress bar
               const progress = document.createElement('div');
               progress.className = 'genre-slider-progress';
               progress.style.width = `${score}%`;
-              
+
               // Create handle
               const handle = document.createElement('div');
               handle.className = 'genre-slider-handle';
               handle.style.left = `${score}%`;
               handle.setAttribute('data-genre', genreName);
               handle.setAttribute('data-value', score);
-              
+
               // Add drag functionality to handle
               let isDragging = false;
-              
+
               handle.addEventListener('mousedown', (e) => {
                 isDragging = true;
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
                 e.preventDefault(); // Prevent text selection
               });
-              
+
               // Add click functionality to track with immediate drag capability
               track.addEventListener('mousedown', (e) => {
                 // Calculate initial position
                 const rect = track.getBoundingClientRect();
                 let newPos = (e.clientX - rect.left) / rect.width * 100;
-                
+
                 // Clamp between 0 and 100
                 newPos = Math.max(0, Math.min(100, newPos));
-                
+
                 // Update handle and progress
                 handle.style.left = `${newPos}%`;
                 progress.style.width = `${newPos}%`;
                 handle.setAttribute('data-value', Math.round(newPos));
-                
+
                 // Save to manual values if in manual mode
                 if (manualOption.classList.contains('active')) {
                   manualValues[genreName] = Math.round(newPos);
                 }
-                
+
                 // Start dragging immediately
                 isDragging = true;
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
                 e.preventDefault(); // Prevent text selection
               });
-              
+
               const onMouseMove = (e) => {
                 if (!isDragging) return;
-                
+
                 const rect = track.getBoundingClientRect();
                 let newPos = (e.clientX - rect.left) / rect.width * 100;
-                
+
                 // Clamp between 0 and 100
                 newPos = Math.max(0, Math.min(100, newPos));
-                
+
                 // Update handle and progress
                 handle.style.left = `${newPos}%`;
                 progress.style.width = `${newPos}%`;
                 handle.setAttribute('data-value', Math.round(newPos));
-                
+
                 // Save to manual values if in manual mode
                 if (manualOption.classList.contains('active')) {
                   manualValues[genreName] = Math.round(newPos);
                 }
               };
-              
+
               const onMouseUp = () => {
                 isDragging = false;
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
               };
-              
+
               // Assemble the slider
               track.appendChild(progress);
               track.appendChild(handle);
               slider.appendChild(track);
               sliderContainer.appendChild(slider);
               genreItem.appendChild(sliderContainer);
-              
+
               // Add to container
               container.appendChild(genreItem);
             });
           };
-          
+
           // Function to disable/enable sliders for auto/manual modes (reuses existing logic)
           const setSliderMode = (container, isAutoMode) => {
             const sliderHandles = container.querySelectorAll('.genre-slider-handle');
             const sliderTracks = container.querySelectorAll('.genre-slider-track');
-            
+
             if (isAutoMode) {
               // AI auto mode: Hide handles completely (like history loading)
               sliderHandles.forEach(handle => {
@@ -1413,40 +1413,40 @@
               });
             }
           };
-          
+
           // Add initial visible sliders
           createGenreSliders(visibleResults, contentDiv);
-          
+
           // Apply initial mode state (after sliders are created but before toggle options are set up)
           const initialMode = message.data && message.data.mode ? message.data.mode : 'manual';
           const isInitialAutoMode = initialMode === 'auto';
           setSliderMode(contentDiv, isInitialAutoMode);
-          
+
           // Create legend
           const legend = document.createElement('div');
           legend.className = 'genre-slider-legend';
           legend.innerHTML = '<div class="increasing-fit">increasing fit</div>';
-          
+
           // Create "show more" link
           const showMoreLink = document.createElement('a');
           showMoreLink.textContent = 'show more genres';
           showMoreLink.className = 'show-more-genres';
-          
+
           // Set initial visibility (will be updated after variables are declared)
           showMoreLink.style.display = allResults.length > visibleCount ? 'block' : 'none';
-          
+
           showMoreLink.addEventListener('click', () => {
             const currentModeData = getCurrentModeData();
             const nextBatch = currentModeData.slice(visibleCount, visibleCount + 3);
-            
+
             if (nextBatch.length > 0) {
               // Create new sliders for the next batch with fade-in effect
               createGenreSliders(nextBatch, contentDiv);
-              
+
               // Apply correct slider state based on current mode
               const isAutoMode = aiAutoOption.classList.contains('active');
               setSliderMode(contentDiv, isAutoMode);
-              
+
               // Apply fade-in effect to newly added sliders
               const newSliders = Array.from(contentDiv.querySelectorAll('.genre-score-item')).slice(visibleCount);
               newSliders.forEach(slider => {
@@ -1455,38 +1455,38 @@
                   slider.style.opacity = isAutoMode ? '0.6' : '1'; // Respect auto mode opacity
                 }, 10);
               });
-              
+
               // Update visibility state
               visibleCount += nextBatch.length;
               window.genreVisibilityState = visibleCount;
-              
+
               // Update link visibility
               updateShowMoreLink();
             }
           });
-          
+
           // Create button container
           const buttonContainer = document.createElement('div');
           buttonContainer.className = 'genre-button-container';
-          
+
           // Create toggle container
           const toggleContainer = document.createElement('div');
           toggleContainer.className = 'genre-toggle-container';
-          
+
           // Create toggle options container
           const toggleOptions = document.createElement('div');
           toggleOptions.className = 'genre-toggle-options';
-          
+
           // Create manual toggle option
           const manualOption = document.createElement('div');
           manualOption.className = 'genre-toggle-option';
           manualOption.textContent = 'manual';
-          
+
           // Create AI auto toggle option
           const aiAutoOption = document.createElement('div');
           aiAutoOption.className = 'genre-toggle-option';
           aiAutoOption.textContent = 'AI auto';
-          
+
           // Set initial toggle state based on mode from message data
           const messageMode = message.data && message.data.mode ? message.data.mode : 'manual';
           if (messageMode === 'auto') {
@@ -1494,12 +1494,12 @@
           } else {
             manualOption.classList.add('active');
           }
-          
+
           // Create confirm button
           const confirmButton = document.createElement('button');
           confirmButton.className = 'genre-button confirm-button';
           confirmButton.textContent = 'confirm';
-          
+
           // Store initial values of sliders for reset functionality
           const initialValues = {};
           allResults.forEach(result => {
@@ -1507,13 +1507,13 @@
             const genreName = Array.isArray(genre) ? genre[1] : genre;
             initialValues[genreName] = score;
           });
-          
+
           // Also store manual values for when switching between toggle states
-          const manualValues = {...initialValues};
-          
+          const manualValues = { ...initialValues };
+
           // Store auto values separately (will be populated when AI auto is clicked)
           let autoValues = {};
-          
+
           // Helper function to get current mode's genre data
           const getCurrentModeData = () => {
             const isManualMode = manualOption.classList.contains('active');
@@ -1527,16 +1527,16 @@
               return autoValues._allGenreData || [];
             }
           };
-          
+
           // Helper function to update show more link visibility
           const updateShowMoreLink = () => {
             const currentModeData = getCurrentModeData();
             showMoreLink.style.display = currentModeData.length > window.genreVisibilityState ? 'block' : 'none';
           };
-          
+
           // Update initial visibility now that variables are declared
           updateShowMoreLink();
-          
+
           // Function to get current values of all sliders
           const getSliderValues = () => {
             const values = {};
@@ -1548,7 +1548,7 @@
             });
             return values;
           };
-          
+
           // Function to update slider position
           const updateSliderPosition = (handle, value) => {
             const progress = handle.previousElementSibling;
@@ -1556,7 +1556,7 @@
             progress.style.width = `${value}%`;
             handle.setAttribute('data-value', value);
           };
-          
+
           // Function to update all slider positions
           const updateAllSliders = (values) => {
             const handles = contentDiv.querySelectorAll('.genre-slider-handle');
@@ -1567,7 +1567,7 @@
               }
             });
           };
-          
+
           // Add event listeners for toggle options
           manualOption.addEventListener('click', () => {
             // Only do something if not already active
@@ -1575,14 +1575,14 @@
               // Save current auto values and genre data before switching
               if (aiAutoOption.classList.contains('active')) {
                 const currentAutoValues = getSliderValues();
-                
+
                 // Update the full auto genre data with current slider values
                 if (autoValues._allGenreData) {
                   const handles = contentDiv.querySelectorAll('.genre-slider-handle');
                   handles.forEach(handle => {
                     const genre = handle.getAttribute('data-genre');
                     const value = parseInt(handle.getAttribute('data-value'), 10);
-                    
+
                     // Find and update the corresponding entry in _allGenreData
                     const genreIndex = autoValues._allGenreData.findIndex(item => item[0] === genre);
                     if (genreIndex !== -1) {
@@ -1590,67 +1590,67 @@
                     }
                   });
                 }
-                
+
                 // Update auto values with current state
                 Object.assign(autoValues, currentAutoValues);
-                
+
                 console.log('[Manual] Saving current auto values:', currentAutoValues);
                 console.log('[Manual] Updated full auto genre data:', autoValues._allGenreData);
               }
-              
+
               // Update active state
               aiAutoOption.classList.remove('active');
               manualOption.classList.add('active');
-              
+
               // Always clear content first (this handles both sliders and info message)
               contentDiv.innerHTML = '';
-              
+
               // Restore manual genres if we have them stored
               if (manualValues._allGenreData) {
                 console.log('[Manual] Restoring manual genres (all):', manualValues._allGenreData);
-                
+
                 // Clear current content and rebuild with manual genres (up to current visibility state)
                 contentDiv.innerHTML = '';
                 const visibleManualGenres = manualValues._allGenreData.slice(0, window.genreVisibilityState);
                 createGenreSliders(visibleManualGenres, contentDiv);
-                
+
                 // Enable sliders in manual mode since they're user-editable
                 setSliderMode(contentDiv, false);
-                
+
                 // Update the current visible data reference
                 manualValues._genreData = visibleManualGenres;
-                
+
                 console.log(`[Manual] Restored manual UI with ${visibleManualGenres.length} of ${manualValues._allGenreData.length} genres`);
               } else {
                 // Fallback: Create sliders from original data if no stored manual data exists
                 console.log('[Manual] No stored manual data, creating sliders from original data');
-                
+
                 // Convert allResults to the format expected by createGenreSliders
                 const manualGenreData = allResults.map(result => {
                   const [genre, score] = result;
                   const genreName = Array.isArray(genre) ? genre[1] : genre;
                   return [genreName, score];
                 });
-                
+
                 // Create sliders with original data (up to current visibility state)
                 const visibleManualGenres = manualGenreData.slice(0, window.genreVisibilityState);
                 createGenreSliders(visibleManualGenres, contentDiv);
-                
+
                 // Enable sliders for manual mode
                 setSliderMode(contentDiv, false);
-                
+
                 // Store the manual genre data for future use
                 manualValues._allGenreData = manualGenreData;
                 manualValues._genreData = visibleManualGenres;
-                
+
                 console.log(`[Manual] Created manual UI with ${visibleManualGenres.length} of ${manualGenreData.length} genres`);
               }
-              
+
               // Update show more link visibility
               updateShowMoreLink();
             }
           });
-          
+
           aiAutoOption.addEventListener('click', async () => {
             // Only do something if not already active
             if (!aiAutoOption.classList.contains('active')) {
@@ -1658,77 +1658,77 @@
               if (manualOption.classList.contains('active')) {
                 Object.assign(manualValues, getSliderValues());
               }
-              
+
               // Update active state
               manualOption.classList.remove('active');
               aiAutoOption.classList.add('active');
-              
+
               // If we already have auto values, restore them
               if (Object.keys(autoValues).length > 0 && autoValues._allGenreData) {
                 console.log('[AI Auto] Restoring cached auto genres (all):', autoValues._allGenreData);
-                
+
                 // Clear current content and rebuild with auto genres (up to current visibility state)
                 contentDiv.innerHTML = '';
                 const visibleAutoGenres = autoValues._allGenreData.slice(0, window.genreVisibilityState);
                 createGenreSliders(visibleAutoGenres, contentDiv);
-                
+
                 // Disable sliders in auto mode since they're AI-provided
                 setSliderMode(contentDiv, true);
-                
+
                 // Update the current visible data reference
                 autoValues._genreData = visibleAutoGenres;
-                
+
                 console.log(`[AI Auto] Restored auto UI with ${visibleAutoGenres.length} of ${autoValues._allGenreData.length} genres`);
-                
+
                 // Update show more link visibility
                 updateShowMoreLink();
               } else if (autoValues._noDataAvailable) {
                 console.log('[AI Auto] No backend data available, showing info message');
-                
+
                 // Clear current content and show info message
                 contentDiv.innerHTML = getAiAutoInfoMessageHTML();
-                
+
                 // Hide the show more link since there are no sliders
                 updateShowMoreLink();
               } else {
                 // Fetch genre sub-scores from backend
                 try {
                   console.log('[AI Auto] Fetching genre sub-scores from backend for model_id:', this.model_id);
-                  
+
                   // Validate model_id
                   if (!this.model_id) {
                     throw new Error('model_id is not available');
                   }
-                  
+
                   // Show loading state
                   aiAutoOption.textContent = 'loading...';
                   aiAutoOption.style.pointerEvents = 'none';
-                  
+
                   // Call backend function to get genre sub-scores via MainIn bridge method
                   const formElement = document.querySelector('.anvil-container');
                   if (!formElement) {
                     throw new Error('Could not find anvil-container element');
                   }
-                  
+
                   console.log('[AI Auto] Calling MainIn_get_genre_sub_scores with model_id:', this.model_id);
                   const genreSubScoresJson = await anvil.call(formElement, 'MainIn_get_genre_sub_scores', this.model_id);
                   console.log('[AI Auto] Raw response from backend:', genreSubScoresJson);
-                  
+
                   if (!genreSubScoresJson) {
                     throw new Error('No data received from backend');
                   }
-                  
+
                   const genreSubScores = JSON.parse(genreSubScoresJson);
                   console.log('[AI Auto] Parsed genre sub-scores:', genreSubScores);
-                  
+
                   if (!Array.isArray(genreSubScores) || genreSubScores.length === 0) {
                     throw new Error('Invalid or empty genre sub-scores data');
                   }
-                  
+
                   // Store ALL current manual genres and values (including hidden ones)
                   const allCurrentManualGenres = [];
                   const currentManualValues = {};
-                  
+
                   // Get all genres from allResults (the original data)
                   allResults.forEach(result => {
                     const [genre, score] = result;
@@ -1736,90 +1736,90 @@
                     allCurrentManualGenres.push([genreName, score]);
                     currentManualValues[genreName] = score;
                   });
-                  
+
                   // Update with current slider values for visible genres
                   const handles = contentDiv.querySelectorAll('.genre-slider-handle');
                   handles.forEach(handle => {
                     const genre = handle.getAttribute('data-genre');
                     const value = parseInt(handle.getAttribute('data-value'), 10);
                     currentManualValues[genre] = value;
-                    
+
                     // Update the corresponding entry in allCurrentManualGenres
                     const genreIndex = allCurrentManualGenres.findIndex(item => item[0] === genre);
                     if (genreIndex !== -1) {
                       allCurrentManualGenres[genreIndex][1] = value;
                     }
                   });
-                  
+
                   console.log('[AI Auto] Storing ALL manual genres (including hidden):', allCurrentManualGenres);
                   console.log('[AI Auto] Current visibility state:', window.genreVisibilityState);
-                  
+
                   // Update manualValues with current state
                   Object.assign(manualValues, currentManualValues);
-                  
+
                   // Use ALL backend genres (not limited to current display count)
                   const allBackendGenres = genreSubScores;
                   console.log('[AI Auto] Using ALL backend genres:', allBackendGenres.map(item => item.genre_sub));
-                  
+
                   // Clear current content and rebuild with backend genres
                   contentDiv.innerHTML = '';
-                  
+
                   // Convert ALL backend data to our format
                   const backendValues = {};
                   const allBackendGenreData = [];
-                  
+
                   allBackendGenres.forEach(item => {
                     const genreName = item.genre_sub;
                     const score = Math.round(item.bayes_score * 100 / 7); // Convert to 0-100 scale
                     const clampedScore = Math.min(100, Math.max(0, score));
-                    
+
                     backendValues[genreName] = clampedScore;
                     allBackendGenreData.push([genreName, clampedScore]);
-                    
+
                     console.log(`[AI Auto] Backend genre ${genreName}: ${item.bayes_score} -> ${clampedScore}`);
                   });
-                  
+
                   // Rebuild sliders with backend genres (only show up to current visibility state)
                   const visibleBackendGenres = allBackendGenreData.slice(0, window.genreVisibilityState);
                   createGenreSliders(visibleBackendGenres, contentDiv);
-                  
+
                   // Disable sliders in auto mode since they're AI-provided
                   setSliderMode(contentDiv, true);
-                  
+
                   console.log(`[AI Auto] Showing ${visibleBackendGenres.length} of ${allBackendGenreData.length} backend genres`);
-                  
+
                   // Store auto values and genres
-                  autoValues = {...backendValues};
-                  
+                  autoValues = { ...backendValues };
+
                   // Store ALL auto genre data (including hidden ones) for future restoration
                   autoValues._allGenreData = allBackendGenreData;
                   autoValues._genreData = visibleBackendGenres; // Currently visible ones
-                  
+
                   // Store ALL manual genre data (including hidden ones) for restoration
                   if (!manualValues._allGenreData) {
                     manualValues._allGenreData = allCurrentManualGenres;
                     manualValues._genreData = allCurrentManualGenres.slice(0, window.genreVisibilityState);
                   }
-                  
+
                   console.log('[AI Auto] Rebuilt UI with backend genres:', Object.keys(backendValues));
                   console.log('[AI Auto] Auto values set:', autoValues);
-                  
+
                   // Update show more link visibility
                   updateShowMoreLink();
-                  
+
                   console.log('[AI Auto] Updated sliders with backend values:', autoValues);
-                  
+
                 } catch (error) {
                   console.error('[AI Auto] Error fetching genre sub-scores:', error);
-                  
+
                   // No auto values available, clear content and show informational message instead of sliders
                   contentDiv.innerHTML = getAiAutoInfoMessageHTML();
-                  
+
                   // Set empty auto values to indicate no data available
                   autoValues = {};
                   // Set flag to indicate we've tried fetching and no data is available
                   autoValues._noDataAvailable = true;
-                  
+
                   // Hide the show more link since there are no sliders
                   updateShowMoreLink();
                 } finally {
@@ -1830,16 +1830,16 @@
               }
             }
           });
-          
+
           // Add event listener for the Confirm button (send continuation to backend)
           confirmButton.addEventListener('click', () => {
             // Get current slider values
             const currentValues = getSliderValues();
-            
+
             // Get currently selected mode
             const selectedMode = manualOption.classList.contains('active') ? 'manual' : 'auto';
             console.log('Genre preferences confirmed:', currentValues, 'Mode:', selectedMode);
-            
+
             // Send current slider values and mode to backend
             const continuationMessage = {
               type: 'genre_confirmation',
@@ -1852,82 +1852,82 @@
               user_id: sessionStorage.getItem('user_id'),
               agent_id: this.model_id
             };
-            
+
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
               this.sendRawMessage(continuationMessage);
               console.log('[handleGenreSubScores] Sent genre confirmation to backend:', currentValues);
             } else {
               console.warn('[handleGenreSubScores] Cannot send confirmation - WebSocket not connected');
             }
-            
+
             // Hide the button and disable all interactive elements after confirmation
             disableGenreControls(mainContainer, true);
-            
+
             // Reset status indicator to show processing
             if (this.statusIndicator) {
               this.statusIndicator.textContent = 'AIDAR is thinking';
             }
           });
-          
+
           // Assemble the toggle options
           toggleOptions.appendChild(manualOption);
           toggleOptions.appendChild(aiAutoOption);
           toggleContainer.appendChild(toggleOptions);
-          
+
           // Add toggle and confirm button to container
           buttonContainer.appendChild(toggleContainer);
           buttonContainer.appendChild(confirmButton);
-          
+
           // Assemble everything
           mainContainer.appendChild(contentDiv);
           mainContainer.appendChild(legend);
           mainContainer.appendChild(showMoreLink);
           mainContainer.appendChild(buttonContainer);
           messageDiv.appendChild(mainContainer);
-          
+
           // Helper function to disable all genre controls
           const disableGenreControls = (container, hideButton = false) => {
             if (hideButton) {
               confirmButton.style.display = 'none';
             }
-            
+
             // Disable toggle options
             manualOption.style.pointerEvents = 'none';
             manualOption.style.opacity = '0.7';
             aiAutoOption.style.pointerEvents = 'none';
             aiAutoOption.style.opacity = '0.7';
-            
+
             // Disable all sliders (hides handles and shows only the progress bar)
             const allSliders = container.querySelectorAll('.genre-slider-handle');
             allSliders.forEach(handle => {
               handle.style.display = 'none'; // Hide the handle/knob
               handle.style.pointerEvents = 'none';
             });
-            
+
             const allTracks = container.querySelectorAll('.genre-slider-track');
             allTracks.forEach(track => {
               track.style.pointerEvents = 'none';
             });
-            
+
             // Override show more functionality to keep new sliders disabled
             const showMoreLink = container.querySelector('.show-more-genres');
             if (showMoreLink && !showMoreLink.dataset.overridden) {
               showMoreLink.dataset.overridden = 'true';
               const originalShowMore = showMoreLink.onclick;
-              showMoreLink.onclick = function() {
+              showMoreLink.onclick = function () {
                 if (originalShowMore) originalShowMore.call(this);
-                
+
                 // Disable newly revealed sliders
                 setTimeout(() => disableGenreControls(container, false), 100);
               };
             }
           };
-          
+
           // If loading from history, disable all controls and hide button
           if (message.fromHistory) {
             disableGenreControls(mainContainer, true);
           }
-          
+
           // Add to chat and scroll
           this.chatMessages.appendChild(messageDiv);
           this.scrollToBottom();
@@ -1939,7 +1939,7 @@
       // Handle contribution weights information
       handleContributionWeights(message) {
         console.log('[handleContributionWeights] Contribution weights information received:', message);
-        
+
         // Update status indicator to show waiting for confirmation
         if (this.statusIndicator) {
           this.statusIndicator.textContent = 'Waiting for user confirmation';
@@ -1950,26 +1950,26 @@
           const similarityWeight = data.similarity_weight || 0.6;
           const growthWeight = data.growth_weight || 0.3;
           const musicalWeight = data.musical_weight || 0.6;
-          
+
           // Create message element with contribution-weights class
           const messageDiv = document.createElement('div');
           messageDiv.className = 'message contribution-weights';
-          
+
           // Create the main container
           const mainContainer = document.createElement('div');
           mainContainer.className = 'genre-scores-container'; // Reuse existing styles
-          
+
           // Create content div for contribution sliders
           const contentDiv = document.createElement('div');
           contentDiv.className = 'genre-scores-content';
-          
+
           // Store manual values for the weights
           const manualValues = {
             'similarity_weight': Math.round(similarityWeight * 100),
             'growth_weight': Math.round(growthWeight * 100),
             'musical_weight': Math.round(musicalWeight * 100)
           };
-          
+
           // Function to create contribution weight sliders
           const createContributionSliders = (container) => {
             const weights = [
@@ -1977,132 +1977,132 @@
               { key: 'growth_weight', name: 'Growth Weight', value: growthWeight, description: 'How much to prioritize growth parameters and trending artists' },
               { key: 'musical_weight', name: 'Musical Weight', value: musicalWeight, description: 'How much to prioritize musical fit and genre matching' }
             ];
-            
+
             weights.forEach(weight => {
               // Create weight item container
               const weightItem = document.createElement('div');
               weightItem.className = 'genre-score-item';
-              
+
               // Create weight name and description
               const weightNameEl = document.createElement('div');
               weightNameEl.className = 'genre-name';
               weightNameEl.innerHTML = `${weight.name}<br><small>${weight.description}</small>`;
               weightItem.appendChild(weightNameEl);
-              
+
               // Create slider container
               const sliderContainer = document.createElement('div');
               sliderContainer.className = 'genre-slider-container';
-              
+
               // Create slider
               const slider = document.createElement('div');
               slider.className = 'genre-slider';
-              
+
               // Create track
               const track = document.createElement('div');
               track.className = 'genre-slider-track';
-              
+
               // Create progress bar
               const progress = document.createElement('div');
               progress.className = 'genre-slider-progress';
               const percentage = weight.value * 100;
               progress.style.width = `${percentage}%`;
-              
+
               // Create handle
               const handle = document.createElement('div');
               handle.className = 'genre-slider-handle';
               handle.style.left = `${percentage}%`;
               handle.setAttribute('data-weight', weight.key);
               handle.setAttribute('data-value', Math.round(percentage));
-              
+
               // Add drag functionality to handle
               let isDragging = false;
-              
+
               handle.addEventListener('mousedown', (e) => {
                 isDragging = true;
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
                 e.preventDefault();
               });
-              
+
               // Add click functionality to track
               track.addEventListener('mousedown', (e) => {
                 const rect = track.getBoundingClientRect();
                 let newPos = (e.clientX - rect.left) / rect.width * 100;
                 newPos = Math.max(0, Math.min(100, newPos));
-                
+
                 handle.style.left = `${newPos}%`;
                 progress.style.width = `${newPos}%`;
                 handle.setAttribute('data-value', Math.round(newPos));
                 manualValues[weight.key] = Math.round(newPos);
-                
+
                 isDragging = true;
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
                 e.preventDefault();
               });
-              
+
               const onMouseMove = (e) => {
                 if (!isDragging) return;
-                
+
                 const rect = track.getBoundingClientRect();
                 let newPos = (e.clientX - rect.left) / rect.width * 100;
                 newPos = Math.max(0, Math.min(100, newPos));
-                
+
                 handle.style.left = `${newPos}%`;
                 progress.style.width = `${newPos}%`;
                 handle.setAttribute('data-value', Math.round(newPos));
                 manualValues[weight.key] = Math.round(newPos);
               };
-              
+
               const onMouseUp = () => {
                 isDragging = false;
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
               };
-              
+
               // Assemble the slider
               track.appendChild(progress);
               track.appendChild(handle);
               slider.appendChild(track);
               sliderContainer.appendChild(slider);
               weightItem.appendChild(sliderContainer);
-              
+
               // Add to container
               container.appendChild(weightItem);
             });
           };
-          
+
           // Add sliders
           createContributionSliders(contentDiv);
-          
+
           // Create legend
           const legend = document.createElement('div');
           legend.className = 'genre-slider-legend';
           legend.innerHTML = '<div class="increasing-fit">increasing contribution</div>';
-          
+
           // Create button container
           const buttonContainer = document.createElement('div');
           buttonContainer.className = 'genre-button-container';
-          
+
           // Create toggle container
           const toggleContainer = document.createElement('div');
           toggleContainer.className = 'genre-toggle-container';
-          
+
           const toggleOptions = document.createElement('div');
           toggleOptions.className = 'genre-toggle-options';
-          
+
           const manualOption = document.createElement('div');
           manualOption.className = 'genre-toggle-option active'; // Start with manual active
           manualOption.textContent = 'manual';
-          
+
           const aiAutoOption = document.createElement('div');
           aiAutoOption.className = 'genre-toggle-option';
           aiAutoOption.textContent = 'AI auto';
-          
+
           const confirmButton = document.createElement('button');
           confirmButton.className = 'genre-button confirm-button';
           confirmButton.textContent = 'confirm';
-          
+
           // Function to show AI auto learning message
           const showAiAutoMessage = () => {
             contentDiv.innerHTML = `
@@ -2118,13 +2118,13 @@
               </div>
             `;
           };
-          
+
           // Function to show manual sliders
           const showManualSliders = () => {
             contentDiv.innerHTML = '';
             createContributionSliders(contentDiv);
           };
-          
+
           // Toggle functionality
           manualOption.addEventListener('click', () => {
             if (!manualOption.classList.contains('active')) {
@@ -2133,7 +2133,7 @@
               showManualSliders();
             }
           });
-          
+
           aiAutoOption.addEventListener('click', () => {
             if (!aiAutoOption.classList.contains('active')) {
               aiAutoOption.classList.add('active');
@@ -2141,13 +2141,13 @@
               showAiAutoMessage();
             }
           });
-          
+
           // Add confirm button functionality
           confirmButton.addEventListener('click', () => {
             // Determine current mode and values
             const isAutoMode = aiAutoOption.classList.contains('active');
             const currentMode = isAutoMode ? 'auto' : 'manual';
-            
+
             let currentValues;
             if (isAutoMode) {
               // For auto mode, use original suggested values
@@ -2166,7 +2166,7 @@
                 mode: 'manual'
               };
             }
-            
+
             const continuationMessage = {
               type: 'contribution_confirmation',
               content: 'User confirmed contribution weights',
@@ -2175,68 +2175,68 @@
               user_id: sessionStorage.getItem('user_id'),
               agent_id: this.model_id
             };
-            
+
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
               this.sendRawMessage(continuationMessage);
               console.log('[handleContributionWeights] Sent contribution confirmation to backend:', currentValues);
             } else {
               console.warn('[handleContributionWeights] Cannot send confirmation - WebSocket not connected');
             }
-            
+
             // Hide the button and disable all interactive elements after confirmation
             disableContributionControls(mainContainer, true);
-            
+
             // Reset status indicator to show processing
             if (this.statusIndicator) {
               this.statusIndicator.textContent = 'AIDAR is thinking';
             }
           });
-          
+
           // Assemble the toggle options
           toggleOptions.appendChild(manualOption);
           toggleOptions.appendChild(aiAutoOption);
           toggleContainer.appendChild(toggleOptions);
-          
+
           // Add toggle and confirm button to container
           buttonContainer.appendChild(toggleContainer);
           buttonContainer.appendChild(confirmButton);
-          
+
           // Assemble everything
           mainContainer.appendChild(contentDiv);
           mainContainer.appendChild(legend);
           mainContainer.appendChild(buttonContainer);
           messageDiv.appendChild(mainContainer);
-          
+
           // Helper function to disable all contribution controls
           const disableContributionControls = (container, hideButton = false) => {
             if (hideButton) {
               confirmButton.style.display = 'none';
             }
-            
+
             // Disable toggle options
             manualOption.style.pointerEvents = 'none';
             manualOption.style.opacity = '0.7';
             aiAutoOption.style.pointerEvents = 'none';
             aiAutoOption.style.opacity = '0.7';
-            
+
             // Disable all sliders
             const allSliders = container.querySelectorAll('.genre-slider-handle');
             allSliders.forEach(handle => {
               handle.style.display = 'none';
               handle.style.pointerEvents = 'none';
             });
-            
+
             const allTracks = container.querySelectorAll('.genre-slider-track');
             allTracks.forEach(track => {
               track.style.pointerEvents = 'none';
             });
           };
-          
+
           // If loading from history, disable all controls and hide button
           if (message.fromHistory) {
             disableContributionControls(mainContainer, true);
           }
-          
+
           // Add to chat and scroll
           this.chatMessages.appendChild(messageDiv);
           this.scrollToBottom();
@@ -2248,10 +2248,10 @@
       // Handle complete message
       handleCompleteMessage(message) {
         console.log('[handleCompleteMessage] Received complete message:', message);
-        
+
         // Check if button is in cancelling state (more reliable than flag)
         const isCancelling = this.sendButton && this.sendButton.classList.contains('btn-cancelling');
-        
+
         if (isCancelling || this.cancelRequested) {
           console.log('[handleCompleteMessage] Was cancelled, using cancellation cleanup');
           this.cancelRequested = false;
@@ -2259,12 +2259,12 @@
         } else {
           console.log('[handleCompleteMessage] Normal completion, using standard cleanup');
           this.removeStatusIndicator();
-          
+
           // Check if we have an artist_id in the response
           if (message.hasOwnProperty('artist_id')) {
             const currentArtistId = this.getCurrentArtistId();
             console.log('[handleCompleteMessage] Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
-            
+
             // Handle null artist_id (no artists found)
             if (message.artist_id === null || message.artist_id === 'null') {
               console.log('[handleCompleteMessage] No artists found (artist_id is null)');
@@ -2280,15 +2280,15 @@
           }
         }
       }
-      
+
       // Handle extended create agent message from server
       async handleExtendedCreateAgent(message) {
         console.log('[handleExtendedCreateAgent] Received extended create agent message:', message);
-        
+
         // CRITICAL: Update model_id and session_id FIRST to ensure all subsequent operations use the correct IDs
         if (message.agent_id && this.model_id !== message.agent_id) {
           console.log('[handleExtendedCreateAgent] Updating model_id from', this.model_id, 'to', message.agent_id);
-          
+
           // Update immediately without reconnecting WebSocket (we'll handle that separately)
           const normalizedAgentId = this.normalizeId(message.agent_id);
           if (normalizedAgentId) {
@@ -2304,7 +2304,7 @@
           this.lastRequestIdByAgent[this.model_id] = message.request_id;
           console.log('[handleExtendedCreateAgent] Stored request_id for agent', this.model_id, '->', message.request_id);
         }
-        
+
         // a) Set stage based on whether we have an artist_id
         if (message.artist_id && message.artist_id !== "null") {
           console.log('[handleExtendedCreateAgent] Switching to NORMAL mode since we have an artist_id:', message.artist_id);
@@ -2315,7 +2315,7 @@
           console.log('-------------------------------------------------------------');
           this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
         }
-        
+
         // c) Remove status indicator
         this.removeStatusIndicator();
 
@@ -2325,18 +2325,18 @@
           await new Promise(resolve => setTimeout(resolve, 3000));
           document.querySelector('.chat-input-container').classList.add('agent-creation');
           document.querySelector('.chat-container').classList.add('agent-creation');
-          
+
           await new Promise(resolve => setTimeout(resolve, 500));
           document.querySelector('.chat-input-container').style.display = 'none';
           document.querySelector('.chat-container').style.display = 'none';
-          
+
           // Show creation statement
           await new Promise(resolve => setTimeout(resolve, 1500));
-          document.querySelector('.agent-creation-statement').classList.add('agent-creation');          
+          document.querySelector('.agent-creation-statement').classList.add('agent-creation');
           // Update sessionStorage for model_id
           const normalizedAgentId = this.normalizeId(message.agent_id);
           if (normalizedAgentId) { sessionStorage.setItem('model_id', normalizedAgentId); }
-          
+
           // Navigate to agent page
           await new Promise(resolve => setTimeout(resolve, 3000));
           window.location.href = `#agent_artists?artist_id=${encodeURIComponent(message.artist_id)}`;
@@ -2346,11 +2346,11 @@
       // Handle create agent message from server
       async handleCreateAgent(message) {
         console.log('[handleCreateAgent] Received complete create agent message:', message);
-        
+
         // CRITICAL: Update model_id and session_id FIRST to ensure all subsequent operations use the correct IDs
         if (this.model_id !== message.agent_id) {
           console.log('[handleCreateAgent] Updating model_id from', this.model_id, 'to', message.agent_id);
-          
+
           // Update immediately without reconnecting WebSocket (we'll handle that separately)
           const normalizedAgentId = this.normalizeId(message.agent_id);
           if (normalizedAgentId) {
@@ -2358,7 +2358,7 @@
             this.sessionId = message.session_id ? message.session_id : ('session-' + this.model_id);
             sessionStorage.setItem('model_id', normalizedAgentId);
             console.log('[handleCreateAgent] Updated sessionId to:', this.sessionId);
-            
+
             // IMPORTANT: Also update the lastRequestIdByAgent mapping for the new agent_id
             if (this.lastRequestIdByAgent && message.request_id) {
               // Transfer any existing request_id to the new agent_id
@@ -2374,8 +2374,8 @@
           console.log('[handleCreateAgent] Stored request_id for agent', this.model_id, '->', message.request_id);
         }
 
-      
-        
+
+
         // a) update agent navigation (only for acknowledgment message when agent is first created)
         if (message.status === 'ack') {
           this.addNewModelToNavigation({
@@ -2392,7 +2392,7 @@
           console.log("[handleCreateAgent] Switching to EXTENDED_CREATE_AGENT mode since we don't have an artist_id");
           this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
         }
-        
+
         // d) remove status indicator when we receive the final create_agent message
         // The final message has artist_id (either valid ID or null), indicating completion
         if (message.hasOwnProperty('artist_id')) {
@@ -2408,37 +2408,37 @@
           await new Promise(resolve => setTimeout(resolve, 3000));
           document.querySelector('.chat-input-container').classList.add('agent-creation');
           document.querySelector('.chat-container').classList.add('agent-creation');
-          
+
           await new Promise(resolve => setTimeout(resolve, 500));
           document.querySelector('.chat-input-container').style.display = 'none';
           document.querySelector('.chat-container').style.display = 'none';
-          
+
           // Show creation statement
           await new Promise(resolve => setTimeout(resolve, 1500));
-          document.querySelector('.agent-creation-statement').classList.add('agent-creation');          
+          document.querySelector('.agent-creation-statement').classList.add('agent-creation');
           // Update sessionStorage for model_id
           const normalizedAgentId2 = this.normalizeId(message.agent_id);
           if (normalizedAgentId2) { sessionStorage.setItem('model_id', normalizedAgentId2); }
-          
+
           // Navigate to agent page
           await new Promise(resolve => setTimeout(resolve, 3000));
           window.location.href = `#agent_artists?artist_id=${encodeURIComponent(message.artist_id)}`;
         }
       }
-    
+
       // Add a new model to the navigation
       addNewModelToNavigation(modelData) {
         try {
           // 1. Find the nav_models container and the ul.linear-panel inside it
           const navModels = document.querySelector('.anvil-role-nav_models');
           if (!navModels) { return; }
-          
+
           const linearPanel = navModels.querySelector('ul.linear-panel');
           if (!linearPanel) { return; }
-          
+
           // 2. Create the list item container
           const listItem = document.createElement('li');
-          
+
           // 3. Create the flow panel container (matches Anvil's structure)
           const flowPanel = document.createElement('div');
           flowPanel.style = ''; // Empty style attribute to match existing structure
@@ -2454,19 +2454,19 @@
             const minExisting = existingIndices.length ? Math.min(...existingIndices) : 0;
             flowPanel.dataset.orderIndex = String(minExisting - 1);
           } catch (e) {
-            
+
           }
-          
+
           // 4. Create the flow panel gutter
           const flowGutter = document.createElement('div');
           flowGutter.className = 'flow-panel-gutter';
           flowGutter.style = 'justify-content: flex-start;';
-          
+
           // 5. Create the model link container
           const modelLinkContainer = document.createElement('div');
           modelLinkContainer.className = 'flow-panel-item anvil-always-inline-container';
           modelLinkContainer.style = 'flex: 1 1 0%;';
-          
+
           // 6. Create the model link
           const modelLink = document.createElement('a');
           modelLink.style = 'text-align: left;';
@@ -2477,14 +2477,14 @@
           modelLink.setAttribute('anvil-role', 'model-nav-link');
           modelLink.setAttribute('tag', String(modelData.model_id));
           modelLink.dataset.modelId = String(modelData.model_id);
-          
+
           // Set innerHTML directly without whitespace to match exact structure
           modelLink.innerHTML = `<i class="anvil-component-icon left fa fa-angle-right left-icon" aria-hidden="true"></i><div style="display: inline-block;" class="link-text">${modelData.model_name}</div><i class="anvil-component-icon right fa fa-angle-right left-icon" aria-hidden="true"></i>`;
-          
+
           // 7. Create the three-dots icon container (new options menu trigger)
           const dotsContainer = document.createElement('div');
           dotsContainer.className = 'flow-panel-item anvil-always-inline-container';
-          
+
           // 8. Create the three-dots link (icon-link-discreet) used by model_nav_menu.js
           const dotsLink = document.createElement('a');
           dotsLink.style = 'text-align: left;';
@@ -2495,43 +2495,43 @@
           dotsLink.setAttribute('anvil-role', 'icon-link-discreet');
           dotsLink.setAttribute('tag', String(modelData.model_id));
           dotsLink.dataset.modelId = String(modelData.model_id);
-          
+
           // Compact HTML structure with no extra whitespace (horizontal three dots like MainIn)
           dotsLink.innerHTML = `<i class="anvil-component-icon left fa fa-ellipsis-h left-icon" aria-hidden="true"></i><div style="display: none;" class="link-text"></div><i class="anvil-component-icon right fa fa-ellipsis-h left-icon" aria-hidden="true"></i>`;
-          
+
           // 9. Add click handlers
           // Discover link click handler
           modelLink.addEventListener('click', (e) => {
             e.preventDefault();
-            
+
             // First update the WebSocketManager model ID if available
             if (window.wsManager && typeof window.wsManager.updateModelId === 'function') {
               try {
                 window.wsManager.updateModelId(modelData.model_id);
               } catch (err) {
-                
+
               }
             }
-            
+
             // Navigate using the special 'get_artist' parameter that will be resolved server-side
             window.location.href = `#agent_artists?artist_id=get_artist`;
           });
-          
+
           // 10. Assemble the DOM elements
           modelLinkContainer.appendChild(modelLink);
           dotsContainer.appendChild(dotsLink);
-          
+
           flowGutter.appendChild(modelLinkContainer);
           flowGutter.appendChild(dotsContainer);
-          
+
           flowPanel.appendChild(flowGutter);
           listItem.appendChild(flowPanel);
-          
+
           // 11. Insert as the first item AFTER all pinned agents (header remains first)
           const liChildren = Array.from(linearPanel.children).filter(el => el.tagName && el.tagName.toLowerCase() === 'li');
           const headerLi = liChildren[0] || null;
           const pinnedLis = liChildren.filter(li => !!li.querySelector('[anvil-role="nav_flow_panel"].pinned'));
-          
+
           let insertBeforeNode = null;
           if (pinnedLis.length > 0) {
             const lastPinnedLi = pinnedLis[pinnedLis.length - 1];
@@ -2539,7 +2539,7 @@
           } else if (headerLi) {
             insertBeforeNode = headerLi.nextElementSibling; // first row after header
           }
-          
+
           if (insertBeforeNode) {
             linearPanel.insertBefore(listItem, insertBeforeNode);
           } else if (headerLi) {
@@ -2549,7 +2549,7 @@
             // Fallback: no header detected, prepend
             linearPanel.insertBefore(listItem, linearPanel.firstChild);
           }
-          
+
           // 12. Add underline to the newly added link and remove from others
           document.querySelectorAll('.anvil-role-nav_models [anvil-role*="model-nav-link"]').forEach(link => {
             if (link !== modelLink) {
@@ -2559,26 +2559,26 @@
               link.setAttribute('anvil-role', currentRole.replace('underline-link', '').trim());
             }
           });
-          
+
           // 13. Trigger resort to normalize ordering (pinned first, then orderIndex asc)
           try {
             if (typeof resortNavModels === 'function') {
               resortNavModels();
             }
           } catch (e) {
-            
+
           }
-          
+
           // Add underline class and update role attribute to match existing elements
           modelLink.classList.add('anvil-role-underline-link');
           // Ensure we retain model-nav-link role and add underline-link
           modelLink.setAttribute('anvil-role', 'model-nav-link underline-link');
-          
+
         } catch (error) {
-          
+
         }
       }
-      
+
       // -----------------------------------------
       // 5. UI Update Methods
       // Add a user message to the chat
@@ -2592,7 +2592,7 @@
         `;
         this.chatMessages.appendChild(messageElement);
         this.scrollToBottom();
-        
+
         // Show status indicator after user sends a message
         this.showStatusIndicator();
       }
@@ -2609,7 +2609,7 @@
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
       }
-    
+
       // Add an error message to the chat
       addErrorMessage(content) {
         console.log('[addErrorMessage] Adding error message:', content);
@@ -2622,9 +2622,9 @@
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
       }
-      
+
       // Add a bot message
-      addAgentMessage(content) {        
+      addAgentMessage(content) {
         console.log('[addAgentMessage] Adding agent message:', content);
         const BotMessage = document.createElement('div');
         BotMessage.className = 'message agent';
@@ -2635,65 +2635,65 @@
         this.chatMessages.appendChild(BotMessage);
         this.scrollToBottom();
       }
-      
+
       // Show waiting for response indicator
       showStatusIndicator() {
         this.removeStatusIndicator();
-        
+
         // Update processing state
         if (this.setProcessingCurrent) {
           this.setProcessingCurrent(true);
         } else {
           this.isProcessing = true;
         }
-        
+
         // Update send button to processing state (square icon)
         if (this.sendButton) {
           this.sendButton.classList.add('btn-processing');
         }
-        
+
         // Change placeholder text
         if (this.chatInput) {
-          this.chatInput.placeholder = 'Processing request...'; 
+          this.chatInput.placeholder = 'Processing request...';
         }
-        
+
         // Create status indicator
         this.statusIndicator = document.createElement('div');
         this.statusIndicator.className = 'message status-indicator';
         this.statusIndicator.textContent = 'AIDAR is thinking';
-        
+
         const messagesContainer = document.getElementById('chat-messages');
         if (messagesContainer) {
           messagesContainer.appendChild(this.statusIndicator);
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
       }
-      
+
       // Remove status indicator
       removeStatusIndicator() {
         if (this.statusIndicator) {
           this.statusIndicator.remove();
           this.statusIndicator = null;
         }
-        
+
         // Reset processing state
         if (this.setProcessingCurrent) {
           this.setProcessingCurrent(false);
         } else {
           this.isProcessing = false;
         }
-        
+
         // Reset send button to normal state (plane icon)
         if (this.sendButton) {
           this.sendButton.classList.remove('btn-processing');
         }
-        
+
         // Reset chat input placeholder
         if (this.chatInput) {
           this.chatInput.placeholder = 'Type your message here...';
         }
       }
-      
+
 
       // -----------------------------------------
       // 6. Helper Methods
@@ -2707,12 +2707,12 @@
         }
         return count.toString();
       }
-      
+
       // Helper: Get current time in HH:MM AM/PM format
       getCurrentTime() {
         return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
-      
+
       // Helper: Normalize an ID value to a safe non-empty string or '' if invalid
       // 6.1: Returns '' for null/undefined/empty/"null"/"none"/"undefined" (case-insensitive), otherwise trimmed string
       normalizeId(id) {
@@ -2727,7 +2727,7 @@
           return '';
         }
       }
-      
+
       // Helper: Get current artist ID from URL
       getCurrentArtistId() {
         try {
@@ -2738,15 +2738,15 @@
           return null;
         }
       }
-      
+
       // Helper: Show "No Artists Found" page dynamically
       async showNoArtistsFound() {
         try {
           console.log('[showNoArtistsFound] Showing No Artists page dynamically');
-          
+
           // 1. Update the URL silently (without triggering navigation)
           history.replaceState(null, '', '#agent_artists?artist_id=None');
-          
+
           // 2. Call the Python method to handle the "None" artist case
           const formElement = document.querySelector('.anvil-container');
           if (formElement) {
@@ -2757,7 +2757,7 @@
             console.warn('[showNoArtistsFound] Could not find form element, falling back to page reload');
             window.location.href = '#agent_artists?artist_id=None';
           }
-          
+
         } catch (error) {
           console.error('[showNoArtistsFound] Error showing No Artists page dynamically:', error);
           // Fallback to page reload if dynamic change fails
@@ -2765,15 +2765,15 @@
           window.location.href = '#agent_artists?artist_id=None';
         }
       }
-      
+
       // Helper: Dynamically change to a new artist without page reload
       async dynamicArtistChange(newArtistId) {
         try {
           console.log('[dynamicArtistChange] Changing to artist:', newArtistId);
-          
+
           // 1. Update the URL silently (without triggering navigation)
           history.replaceState(null, '', `#agent_artists?artist_id=${encodeURIComponent(newArtistId)}`);
-          
+
           // 2. Call the Python method to handle the complete artist change (similar to _rate_artist_and_refresh)
           const formElement = document.querySelector('.anvil-container');
           if (formElement) {
@@ -2791,38 +2791,38 @@
           window.location.href = `#agent_artists?artist_id=${encodeURIComponent(newArtistId)}`;
         }
       }
-      
+
       // Helper: Scroll chat to bottom
       scrollToBottom() {
         if (this.chatMessages) {
           this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }
       }
-      
+
       // Per-agent processing helpers (UI gating scoped by current model)
       isProcessingCurrent() {
         // Determine processing state for the current agent/model
         this.processingState = this.processingState || {};
         return !!this.processingState[this.model_id];
       }
-      
+
       setProcessingCurrent(value) {
         // Set processing state for the current agent/model and mirror into legacy flag
         this.processingState = this.processingState || {};
         this.processingState[this.model_id] = !!value;
         this.isProcessing = !!value;
       }
-      
+
       // Cancel ongoing execution
       cancelExecution() {
         console.log('[cancelExecution] Sending cancellation request to backend');
-        
+
         // Set cancellation flag
         this.cancelRequested = true;
-        
+
         // Immediately show cancellation status and start rotation
         this.showCancellingState('Canceling query after finishing the started process…');
-        
+
         // Send cancel message to backend
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
           const rid = (this.lastRequestIdByAgent && this.lastRequestIdByAgent[this.model_id]) || undefined;
@@ -2833,7 +2833,7 @@
             request_id: rid,
             timestamp: new Date().toISOString()
           };
-          
+
           try {
             console.log('[cancelExecution] Sending cancel message to backend:', cancelMessage);
             this.sendRawMessage(cancelMessage);
@@ -2846,7 +2846,7 @@
           this.addErrorMessage('Cannot cancel: connection not available');
         }
       }
-      
+
       // Helper: Escape HTML to prevent XSS
       escapeHtml(unsafe) {
         return unsafe
@@ -2854,9 +2854,10 @@
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
+          .replace(/'/g, "&#039;")
+          .replace(/\n/g, "<br>");
       }
-      
+
       // Delete reference artist with confirmation and server call
       async deleteReference(artistId, buttonElement) {
         try {
@@ -2873,7 +2874,7 @@
             console.log('[deleteReference] Using targetModelId for deletion:', targetModelId);
             const result = await anvil.call(formElement, 'MainIn_delete_reference', targetModelId, artistId);
             console.log('[deleteReference] Server call completed, result:', result);
-            
+
             // Remove the artist element from the DOM on successful deletion
             if (result) {
               const artistElement = buttonElement.closest('.message.artist');
@@ -2891,15 +2892,15 @@
           this.addErrorMessage('Failed to delete artist reference.');
         }
       }
-      
+
       // Update model ID and reconnect if needed
       updateModelId(newModelId) {
         console.log('[updateModelId] ===== Starting model ID update =====');
         console.log('[updateModelId] Current model ID:', this.model_id, 'New model ID:', newModelId);
-        console.log('[updateModelId] Current connection state - isConnected:', this.isConnected, 
-                    'isConnecting:', this.isConnecting, 
-                    'socket state:', this.socket ? this.socket.readyState : 'no socket');
-        
+        console.log('[updateModelId] Current connection state - isConnected:', this.isConnected,
+          'isConnecting:', this.isConnecting,
+          'socket state:', this.socket ? this.socket.readyState : 'no socket');
+
         // Normalize new model ID and current model ID
         const normalizedNewModelId = this.normalizeId(newModelId);
         if (!normalizedNewModelId) {
@@ -2907,47 +2908,47 @@
           return; // Don't update if we receive an invalid model_id
         }
         const currentModelId = this.normalizeId(this.model_id);
-        
+
         if (normalizedNewModelId === currentModelId) {
           console.log('[updateModelId] Model ID unchanged, keeping existing connection');
           return;
         }
-        
+
         console.log('[updateModelId] Updating model ID from', currentModelId, 'to', normalizedNewModelId);
 
         // save cache model_id
         sessionStorage.setItem("model_id", normalizedNewModelId);
-        
+
         // Set updating flag to prevent duplicate reconnections
         this.isUpdatingModelId = true;
         console.log('[updateModelId] Set isUpdatingModelId to true');
-        
+
         try {
           this.model_id = normalizedNewModelId;
           this.sessionId = 'session-' + this.model_id;
-          
+
           // Get WebSocket URL using the global function
           this.wsUrl = window.getWebSocketUrl(this.sessionId);
-          
+
           console.log('[updateModelId] New session ID:', this.sessionId);
           console.log('[updateModelId] New WebSocket URL:', this.wsUrl);
-          
+
           // Close existing connection if any
           if (this.socket) {
             console.log('[updateModelId] Closing existing WebSocket connection for model ID update');
             console.log('[updateModelId] Current socket readyState:', this.socket.readyState);
-            
+
             try {
               // Set a flag to prevent reconnection attempts during model ID update
               this.wasConnectedBeforeError = false;
-              
+
               // Close the socket and clear any pending reconnects
               if (this.reconnectTimeout) {
                 console.log('[updateModelId] Clearing existing reconnect timeout');
                 clearTimeout(this.reconnectTimeout);
                 this.reconnectTimeout = null;
               }
-              
+
               // Close the socket if it's in a valid state
               if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
                 console.log('[updateModelId] Closing WebSocket with code 1000 (normal closure)');
@@ -2955,7 +2956,7 @@
               } else {
                 console.log('[updateModelId] Socket not in OPEN or CONNECTING state, skipping close');
               }
-              
+
               this.socket = null;
               console.log('[updateModelId] Existing WebSocket connection closed for model ID update');
             } catch (e) {
@@ -2964,27 +2965,27 @@
           } else {
             console.log('[updateModelId] No existing socket to close');
           }
-          
+
           // Reset connection state
           this.isConnected = false;
           this.isConnecting = false;
           this.reconnectAttempts = 0;
-          
+
           console.log('[updateModelId] Reset connection state - isConnected: false, isConnecting: false');
-          
+
           // Refresh DOM element references
           console.log('[updateModelId] Refreshing DOM element references');
           this.chatContainer = document.querySelector('.chat-container');
           this.chatMessages = document.getElementById('chat-messages');
           this.chatInput = document.getElementById('chat-input');
           this.sendButton = document.getElementById('send-button');
-          
+
           console.log('[updateModelId] DOM elements refreshed');
-          
+
           // Reset the flag before connecting to allow the connection to proceed
           this.isUpdatingModelId = false;
           console.log('[updateModelId] Reset isUpdatingModelId to false before connecting');
-          
+
           // Reconnect with new session ID
           console.log('[updateModelId] Initiating new connection with updated model ID');
           this.connect();
@@ -2996,10 +2997,10 @@
       }
     }
   };
-  
-  
 
-  
+
+
+
 
   // =====================================================================
   // Refresh WebSocketManager instance after page navigation
@@ -3028,7 +3029,7 @@
 
     // Re-bind input event for auto-resize
     if (manager.chatInput) {
-      manager.chatInput.addEventListener('input', function() {
+      manager.chatInput.addEventListener('input', function () {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
 
@@ -3062,45 +3063,45 @@
    */
   function initializeWebSocketManager() {
     console.log('[initializeWebSocketManager] Starting WebSocket manager initialization');
-    
+
     // Prevent multiple initializations - use existing instance if available
     if (window.wsManager) {
       console.log('[initializeWebSocketManager] Using existing WebSocket manager instance');
       return window.wsManager;
     }
-    
+
     try {
       // 1. Create and store the WebSocket manager instance
       window.wsManager = new WebSocketManager();
       console.log('[initializeWebSocketManager] Created new WebSocketManager instance');
-      
+
       // 2. Get references to essential DOM elements
       const sendButton = document.getElementById('send-button');
       const chatInput = document.getElementById('chat-input');
-      
+
       // 3. Validate required elements exist
       if (!sendButton || !chatInput) {
         console.error('[initializeWebSocketManager] Critical Error: Required chat interface elements not found');
         return window.wsManager; // Return manager even if UI elements are missing
       }
-      
+
       console.log('[initializeWebSocketManager] Successfully located all required DOM elements');
-      
+
       // 4. Configure chat input behavior
-      chatInput.addEventListener('input', function() {
+      chatInput.addEventListener('input', function () {
         // Auto-resize textarea to fit content
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
-        
+
         // Update send button state based on input content
         const hasText = this.value.trim() !== '';
         sendButton.disabled = !hasText;
         console.log(`[initializeWebSocketManager] Input field updated, hasText: ${hasText}`);
       });
-      
+
       // 5. Initialize UI state
       sendButton.disabled = true; // Disable send button initially (no text)
-      
+
       // 6. Set up cleanup on page unload
       window.addEventListener('beforeunload', () => {
         console.log('[initializeWebSocketManager] Page unloading, cleaning up WebSocket connection');
@@ -3109,14 +3110,14 @@
           window.wsManager.socket.close(1000, 'Window closing');
         }
       });
-      
+
       console.log('[initializeWebSocketManager] Initialization completed successfully');
       return window.wsManager;
-      
+
     } catch (error) {
       // 7. Handle initialization errors
       console.error('[initializeWebSocketManager] Critical error during initialization:', error);
-      
+
       // Show user-friendly error message
       const errorMsg = document.createElement('div');
       Object.assign(errorMsg.style, {
@@ -3133,11 +3134,11 @@
       });
       errorMsg.textContent = 'Failed to connect to AI Assistant. Please refresh the page.';
       document.body.appendChild(errorMsg);
-      
+
       return null; // Indicate failure
     }
   }
-  
+
   // 8. Initialize WebSocket manager when DOM is ready
   // This ensures all required elements are available before setup
   if (document.readyState === 'loading') {
@@ -3148,10 +3149,10 @@
     initializeWebSocketManager();
   }
 
-  
+
   // Notes Sidebar - Fix scoping and initialization issue
   var sidebar, button, mainContent, agentSidebar, agentButton;
-  
+
   // Always initialize elements (don't rely on window.sidebarInitialized for element queries)
   sidebar = document.getElementById('right-sidebar');
   button = document.getElementById('sidebar-button');
@@ -3159,8 +3160,8 @@
   mainContent = document.querySelector('.anvil-role-discover_self') || document.querySelector('.discover_self');
   agentSidebar = document.getElementById('agent-sidebar');
   agentButton = document.getElementById('agent-sidebar-button');
-    
-  if(typeof window.sidebarInitialized === 'undefined') {
+
+  if (typeof window.sidebarInitialized === 'undefined') {
     window.sidebarInitialized = true;
 
     function updateMargins() {
@@ -3194,14 +3195,14 @@
     }
   }
 
-  (function() {
+  (function () {
     let displays = document.querySelectorAll('.note-display');
     const transitionDuration = 900;
 
     displays.forEach(display => {
       let noteValue = display.dataset.note.replace('%', '');
       let note = parseFloat(noteValue);
-      
+
       // Handle case where there's no decimal point
       let parts = noteValue.split('.');
       let int = Number(parts[0]) || 0;
@@ -3215,13 +3216,13 @@
     function increaseNumber(display, number, className) {
       let element = display.querySelector(`.percent__${className}`),
         decPoint = className === 'int' ? '%' : '';
-      
+
       // Handle case where number is 0 or invalid
       if (!number || number <= 0 || isNaN(number)) {
         element.textContent = '0' + decPoint;
         return;
       }
-      
+
       let interval = 900 / number,
         counter = 0;
 
@@ -3264,7 +3265,7 @@
     if (agentSidebar && agentButton) {
       const savedToggleState = sessionStorage.getItem('agent_toggle');
       const isOpen = savedToggleState === null ? true : savedToggleState === 'true';
-      
+
       if (isOpen) {
         agentSidebar.classList.add('open');
         agentButton.classList.add('open');
@@ -3272,7 +3273,7 @@
         agentSidebar.classList.remove('open');
         agentButton.classList.remove('open');
       }
-      
+
       // Define updateAgentMargins inside initializeAgentSidebar to have access to all variables
       const updateAgentMargins = () => {
         const agentOpen = agentSidebar.classList.contains('open');
@@ -3293,16 +3294,16 @@
         if (notesButton) notesButton.style.right = (notesOpen ? totalMargin : 0) + 'px';
         if (agentButton) agentButton.style.right = (agentOpen ? totalMargin : 0) + 'px';
       };
-      
+
       updateAgentMargins(); // This will update the margins and button positions
-      
+
       // Add event listeners and initialize components
       if (agentButton && agentSidebar && notesButton && chatInput && sendButton && chatMessages) {
         // Position notes button below agent button
         function positionAgentButton() {
           const agentRect = agentButton.getBoundingClientRect();
-            notesButton.style.top = `${agentRect.bottom + 20}px`;
-          }
+          notesButton.style.top = `${agentRect.bottom + 20}px`;
+        }
 
         // Initial positioning
         positionAgentButton();
@@ -3311,14 +3312,14 @@
         window.addEventListener('resize', positionAgentButton);
 
         // Toggle sidebar
-        agentButton.addEventListener('click', function() {
+        agentButton.addEventListener('click', function () {
           agentSidebar.classList.toggle('open');
           agentButton.classList.toggle('open');
-          
+
           // Save toggle state to sessionStorage
           const isOpen = agentSidebar.classList.contains('open');
           sessionStorage.setItem('agent_toggle', isOpen.toString());
-          
+
           updateAgentMargins();
         });
 
@@ -3344,23 +3345,23 @@
 
       // Initialize scrollObserver variable in proper scope
       let scrollObserver = null;
-      
+
       // Scroll to bottom when content changes
       if (chatMessages) {
         let isScrolling = false;
         scrollObserver = new MutationObserver(() => {
-            if (!isScrolling) {
-              isScrolling = true;
-              // Small delay to ensure DOM is updated
-              requestAnimationFrame(() => {
-                scrollToBottom();
-                isScrolling = false;
-              });
-            }
-          });
+          if (!isScrolling) {
+            isScrolling = true;
+            // Small delay to ensure DOM is updated
+            requestAnimationFrame(() => {
+              scrollToBottom();
+              isScrolling = false;
+            });
+          }
+        });
 
-          // Observe chat messages for changes
-          scrollObserver.observe(chatMessages, { childList: true, subtree: true });
+        // Observe chat messages for changes
+        scrollObserver.observe(chatMessages, { childList: true, subtree: true });
       }
 
       // Format time
@@ -3404,7 +3405,7 @@
           sendButton.addEventListener('click', (e) => {
             e.preventDefault();
             const wsManager = getWebSocketManager();
-            
+
             // Stage-aware gating: allow submissions in create stages even if another agent is processing
             if (wsManager.stage === wsManager.STAGE.NORMAL) {
               if (wsManager.isProcessingCurrent && wsManager.isProcessingCurrent()) {
@@ -3425,15 +3426,15 @@
             // For Enter key - ALWAYS DO NOTHING when processing
             if (e.key === 'Enter' && !e.shiftKey) {
               const wsManager = getWebSocketManager();
-              
+
               // For processing state in NORMAL stage: prevent default and do nothing
               if (wsManager.stage === wsManager.STAGE.NORMAL &&
-                  wsManager.isProcessingCurrent && wsManager.isProcessingCurrent()) {
+                wsManager.isProcessingCurrent && wsManager.isProcessingCurrent()) {
                 e.preventDefault();
                 e.stopPropagation(); // Prevent event bubbling
                 return; // Do nothing at all
               }
-              
+
               // In create stages, allow sending even if other agents are processing
               if (chatInput.value.trim()) {
                 e.preventDefault();
@@ -3476,16 +3477,16 @@
 
       // Clean up on unload
       window.addEventListener('beforeunload', () => {
-          if (scrollObserver) {
-            scrollObserver.disconnect();
-          }
+        if (scrollObserver) {
+          scrollObserver.disconnect();
+        }
         window.removeEventListener('resize', scrollToBottom);
       });
     }
   }
 
   // Make loadMessageHistory available globally for Python to call
-  window.loadMessageHistory = function(messages) {
+  window.loadMessageHistory = function (messages) {
     console.log('[loadMessageHistory] Loading message history:', messages);
 
     const wsManager = window.wsManager; // Get the WebSocketManager instance
@@ -3500,10 +3501,10 @@
   // ------------------------------------------------------------
   // CREATION VIEW
   // Make updateAgentSidebarWidth globally available
-  window.updateAgentSidebarWidth = function() {
+  window.updateAgentSidebarWidth = function () {
     const leftSidebar = document.getElementById('left-sidebar');
     const agentSidebar = document.getElementById('agent-sidebar');
-    
+
     if (leftSidebar && agentSidebar) {
       // Use computed values to determine visibility and width
       const cs = window.getComputedStyle(leftSidebar);
@@ -3531,7 +3532,7 @@
 
     // Initial update with a small delay to ensure DOM is ready
     setTimeout(window.updateAgentSidebarWidth, 100);
-    
+
     // Also update when the window loads in case styles aren't applied yet
     window.addEventListener('load', window.updateAgentSidebarWidth);
 
@@ -3540,9 +3541,9 @@
     if (leftSidebar) {
       // Create a MutationObserver to watch for style changes
       const observer = new MutationObserver(window.updateAgentSidebarWidth);
-      observer.observe(leftSidebar, { 
-        attributes: true, 
-        attributeFilter: ['style'] 
+      observer.observe(leftSidebar, {
+        attributes: true,
+        attributeFilter: ['style']
       });
     }
   })();
@@ -3550,11 +3551,11 @@
 
   // CREATE AGENT VIEW (Step 1)
   // MAKE createAgentView accessible from Python
-  window.createAgentView = function() {
+  window.createAgentView = function () {
     console.log('[createAgentView] Creating agent view');
     const agentSidebar = document.getElementById('agent-sidebar');
     const agentButton = document.getElementById('agent-sidebar-button');
-    
+
     if (agentSidebar) {
       // Ensure the sidebar is visible when creating a new agent
       // This fixes positioning issues when sidebar was previously hidden
@@ -3565,7 +3566,7 @@
       // Save toggle state to sessionStorage
       sessionStorage.setItem('agent_toggle', 'true');
       console.log('[createAgentView] Ensured agent sidebar is visible');
-      
+
       // Set createAgent stage - message filtering will handle old agent messages
       const wsManager = window.wsManager;
       if (wsManager) {
@@ -3595,7 +3596,7 @@
         agentButton,
         document.querySelector('.footer')
       ];
-      
+
       elements.forEach(element => {
         if (element) {
           element.classList.add('in-creation');
@@ -3609,7 +3610,7 @@
         wsManager.stage = wsManager.STAGE.CREATE_AGENT;
         console.log('[createAgentView] Ensuring stage is set to create agent:', wsManager.stage);
       }
-      
+
       // Add initial creation classes
       const chatContainer = document.querySelector('.chat-container');
       const creationQuestion = document.querySelector('.initial-creation-question');
@@ -3628,16 +3629,16 @@
       }
       // Update width based on left sidebar state
       updateAgentSidebarWidth();
-      
+
       console.log('[createAgentView] Added in-creation classes to all elements');
     } else {
       console.error('[createAgentView] Could not find agent sidebar element');
     }
   }
-  
+
   // CREATE EXTENDED AGENT VIEW (For continuing agent creation with model_id already set)
   // MAKE createExtendedAgentView accessible from Python
-  window.createExtendedAgentView = function() {
+  window.createExtendedAgentView = function () {
     console.log('[createExtendedAgentView] Creating extended agent view');
     const agentSidebar = document.getElementById('agent-sidebar');
     if (agentSidebar) {
@@ -3658,18 +3659,18 @@
         } catch (e) {
           console.warn('[createExtendedAgentView] UI reset warning:', e);
         }
-        
+
         // 3. Handle model ID validation and synchronization
         if (wsManager.model_id && wsManager.model_id !== 'null') {
           console.log('[createExtendedAgentView] Using existing model_id:', wsManager.model_id);
-          
+
           // 4. Synchronize session storage with current model_id to prevent "model ID changed" errors
           const storedModelId = sessionStorage.getItem('model_id');
           if (storedModelId !== wsManager.model_id) {
             console.log('[createExtendedAgentView] Updating session storage model_id to:', wsManager.model_id);
             sessionStorage.setItem('model_id', wsManager.model_id);
           }
-          
+
           // 5. Check if we need to reconnect WebSocket
           // Avoid immediate reconnection by doing a safe check and cleanup
           if (wsManager.socket) {
@@ -3702,14 +3703,14 @@
         document.getElementById('agent-sidebar-button'),
         document.querySelector('.footer')
       ];
-      
+
       elements.forEach(element => {
         if (element) {
           element.classList.add('in-creation');
           console.log('[createExtendedAgentView] Added in-creation to:', element);
         }
       });
-      
+
       // 6. Prepare UI elements for extended agent creation flow
       const chatContainer = document.querySelector('.chat-container');
       const chatInputContainer = document.querySelector('.chat-input-container');
@@ -3717,17 +3718,17 @@
       const chatMessages = document.getElementById('chat-messages');
       const initialCreationQuestion = document.querySelector('.initial-creation-question');
       const classicalCreationLink = document.querySelector('.agent-classical-creation-link');
-      
+
       // Clear any existing error messages to provide clean starting experience
       if (chatMessages) {
         // Only remove error messages, keep the conversation history
         const errorMessages = chatMessages.querySelectorAll('.error-message');
         errorMessages.forEach(msg => msg.remove());
-        
+
         // Add overflow styling for scrolling
         chatMessages.style.overflow = 'auto';
       }
-      
+
       // Configure chat container properly - show it but not with initial-creation class
       if (chatContainer) {
         chatContainer.style.display = 'block';
@@ -3736,35 +3737,35 @@
         chatContainer.classList.add('show-animation'); // Add animation
         console.log('[createExtendedAgentView] Made chat container visible with proper styling');
       }
-      
+
       // Configure chat input properly
       if (chatInputContainer) {
         chatInputContainer.style.display = 'flex';
         chatInputContainer.classList.remove('agent-creation'); // Remove agent-creation if present
         console.log('[createExtendedAgentView] Made chat input visible with proper styling');
       }
-      
+
       // Hide the initial creation elements if they're visible
       if (initialCreationQuestion) {
         initialCreationQuestion.classList.remove('initial-creation');
         console.log('[createExtendedAgentView] Hid initial creation question');
       }
-      
+
       if (classicalCreationLink) {
         classicalCreationLink.classList.remove('initial-creation');
         console.log('[createExtendedAgentView] Hid classical creation link');
       }
-      
+
       // 7. Update sidebar width and ensure proper layout
       updateAgentSidebarWidth();
-      
+
       // 8. Ensure chat is scrollable and scroll to bottom
       if (chatMessages) {
         // Ensure chat messages are scrollable
         chatMessages.style.overflow = 'auto';
         chatMessages.style.maxHeight = 'calc(100% - 80px)';
       }
-      
+
       // Use the existing scrollToBottom helper from WebSocketManager
       if (wsManager) {
         // Slight delay to ensure DOM is updated
@@ -3773,7 +3774,7 @@
           console.log('[createExtendedAgentView] Scrolled chat to bottom');
         }, 300);
       }
-      
+
       console.log('[createExtendedAgentView] Extended agent view setup complete');
     } else {
       console.error('[createExtendedAgentView] Could not find agent sidebar element');
@@ -3781,10 +3782,10 @@
   }
 
   // MAKE updateModelId accessible from Python
-  window.updateModelId = function(model_id) {
+  window.updateModelId = function (model_id) {
     console.log('[updateModelId] MAKE updateModelId accessible from Python - model_id:', model_id);
     window.model_id = model_id;
-    
+
     // Update the model_id in the WebSocketManager
     const wsManager = window.wsManager;
     if (wsManager) {
@@ -3803,4 +3804,3 @@
   }
 
 </script>
-
