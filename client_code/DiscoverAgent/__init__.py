@@ -191,6 +191,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         if (
             url_artist_id == "create_agent"
             or url_artist_id == "extended_create_agent"
+            or not str(model_id).isdigit()  # filter for valid model_id
         ):
             return
 
