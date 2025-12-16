@@ -187,6 +187,13 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 None, "", f"#agent_artists?artist_id={url_artist_id}"
             )
 
+        # check if we are creating a new agent - skip get_suggestion call
+        if (
+            url_artist_id == "create_agent"
+            or url_artist_id == "extended_create_agent"
+        ):
+            return
+
         # get_suggestion
         if use_existing_sug and hasattr(self, "sug") and self.sug:
             sug = self.sug  # Use existing suggestion data
@@ -198,14 +205,8 @@ class DiscoverAgent(DiscoverAgentTemplate):
             )  # Free, Explore, Inspect, Dissect
         # print(sug)
 
-        # check if we are creating a new agent
-        if (
-            url_artist_id == "create_agent"
-            or url_artist_id == "extended_create_agent"
-        ):
-            pass
-
-        elif sug["Status"] == "Empty Model!":
+        # Empty Model
+        if sug["Status"] == "Empty Model!":
             self.sec_header.visible = False
             self.flow_panel_sections.visible = False
             self.sec_releases.visible = False
