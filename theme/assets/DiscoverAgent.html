@@ -910,6 +910,18 @@
           // return;
         }
 
+        // Check for success message with artist_id to trigger early load
+        if (message.content === "Success - matching artist found!" && message.artist_id) {
+          const currentArtistId = this.getCurrentArtistId();
+          console.log('[handleStatusUpdate] Success message received. Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
+
+          // Handle valid artist_id that's different from current
+          if (String(currentArtistId) !== String(message.artist_id)) {
+            console.log('[handleStatusUpdate] Artist changed, refreshing artist content dynamically');
+            this.dynamicArtistChange(message.artist_id);
+          }
+        }
+
         // Always ensure we have a visible status indicator for status updates
         if (message.content) {
           // Find existing status indicator in DOM or create one
@@ -2262,21 +2274,13 @@
 
           // Check if we have an artist_id in the response
           if (message.hasOwnProperty('artist_id')) {
-            const currentArtistId = this.getCurrentArtistId();
-            console.log('[handleCompleteMessage] Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
-
             // Handle null artist_id (no artists found)
             if (message.artist_id === null || message.artist_id === 'null') {
               console.log('[handleCompleteMessage] No artists found (artist_id is null)');
               this.showNoArtistsFound();
             }
-            // Handle valid artist_id that's different from current
-            else if (String(currentArtistId) !== String(message.artist_id)) {
-              console.log('[handleCompleteMessage] Artist changed, refreshing artist content dynamically');
-              this.dynamicArtistChange(message.artist_id);
-            } else {
-              console.log('[handleCompleteMessage] Same artist, no reload needed');
-            }
+            // Note: Successful artist loading is now handled by the "Success" status update message
+            // to trigger the reload earlier in the process.
           }
         }
       }
