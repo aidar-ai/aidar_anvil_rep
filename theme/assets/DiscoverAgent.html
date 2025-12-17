@@ -884,6 +884,14 @@
                 document.querySelector('.chat-input-container').style.display = 'none';
                 document.querySelector('.chat-container').style.display = 'none';
 
+                // Ensure the main content area is visible
+                console.log('[handleTextChunk] Ensuring main content is visible');
+                const mainContent = document.querySelector('.anvil-role-discover_self');
+                if (mainContent) {
+                  mainContent.style.display = 'block';
+                  console.log('[handleTextChunk] Main content display set to block');
+                }
+
                 // Now load the artist profile
                 console.log('[handleTextChunk] Loading artist profile:', this.pendingArtistId);
                 await this.dynamicArtistChange(this.pendingArtistId);
@@ -2440,36 +2448,11 @@
         }
 
         // b) remove status indicator when we receive the final create_agent message
-        // The final message has artist_id (either valid ID or null), indicating completion
-        if (message.hasOwnProperty('artist_id')) {
-          this.removeStatusIndicator();
-          console.log('[handleCreateAgent] Removed status indicator - agent creation complete. artist_id:', message.artist_id);
-        } else {
-          console.log('[handleCreateAgent] Keeping status indicator - intermediate create_agent message (no artist_id field)');
-        }
+        // Note: The complete message no longer contains artist_id, so we just keep the status indicator
+        // until the success message arrives and triggers the transition
+        console.log('[handleCreateAgent] Keeping status indicator - intermediate create_agent message (no artist_id field)');
 
-        // e) navigate to agent page if artist_id is not null
-        if (message.artist_id !== null && message.artist_id !== undefined && message.artist_id !== '' && message.artist_id !== 'null') {
-          // Hide chat containers first
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          document.querySelector('.chat-input-container').classList.add('agent-creation');
-          document.querySelector('.chat-container').classList.add('agent-creation');
-
-          await new Promise(resolve => setTimeout(resolve, 500));
-          document.querySelector('.chat-input-container').style.display = 'none';
-          document.querySelector('.chat-container').style.display = 'none';
-
-          // Show creation statement
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          document.querySelector('.agent-creation-statement').classList.add('agent-creation');
-          // Update sessionStorage for model_id
-          const normalizedAgentId2 = this.normalizeId(message.agent_id);
-          if (normalizedAgentId2) { sessionStorage.setItem('model_id', normalizedAgentId2); }
-
-          // Navigate to agent page
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          window.location.href = `#agent_artists?artist_id=${encodeURIComponent(message.artist_id)}`;
-        }
+        // Note: Artist profile loading is now handled by the success message flow in handleStatusUpdate + handleTextChunk
       }
 
       // Add a new model to the navigation
