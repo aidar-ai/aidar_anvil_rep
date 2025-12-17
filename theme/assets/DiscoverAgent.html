@@ -884,20 +884,10 @@
                 document.querySelector('.chat-input-container').style.display = 'none';
                 document.querySelector('.chat-container').style.display = 'none';
 
-                // Ensure the main content area is visible
-                console.log('[handleTextChunk] Ensuring main content is visible');
-                const mainContent = document.querySelector('.anvil-role-discover_self');
-                if (mainContent) {
-                  mainContent.style.display = 'block';
-                  console.log('[handleTextChunk] Main content display set to block');
-                }
-
-                // Now load the artist profile
-                console.log('[handleTextChunk] Loading artist profile:', this.pendingArtistId);
-                await this.dynamicArtistChange(this.pendingArtistId);
-                console.log('[handleTextChunk] Clearing pending flags');
-                this.pendingArtistTransition = false;
-                this.pendingArtistId = null;
+                // Navigate to artist page (using page reload to ensure backend predictions are ready)
+                console.log('[handleTextChunk] Navigating to artist page:', this.pendingArtistId);
+                window.location.href = `#agent_artists?artist_id=${encodeURIComponent(this.pendingArtistId)}`;
+                // Note: No need to clear pending flags as page will reload
               })();
             }
           }
