@@ -860,6 +860,31 @@
 
           if (message.content && typeof message.content === 'string') {
             this.addAgentMessage(message.content);
+
+            // If we're in creation mode and transitioning to an artist, show the "We're ready" message
+            if ((this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT) && this.pendingArtistTransition) {
+              (async () => {
+                // Show creation statement
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                document.querySelector('.agent-creation-statement').classList.add('agent-creation');
+
+                // Wait for user to see the message, then hide chat and load artist
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                document.querySelector('.chat-input-container').classList.add('agent-creation');
+                document.querySelector('.chat-container').classList.add('agent-creation');
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+                document.querySelector('.chat-input-container').style.display = 'none';
+                document.querySelector('.chat-container').style.display = 'none';
+
+                // Now load the artist profile
+                if (this.pendingArtistId) {
+                  await this.dynamicArtistChange(this.pendingArtistId);
+                  this.pendingArtistTransition = false;
+                  this.pendingArtistId = null;
+                }
+              })();
+            }
           }
         } catch (error) {
           console.error('[handleTextChunk] Error processing text chunk:', error);
@@ -929,23 +954,13 @@
           if (String(normalizedCurrentId) !== String(message.artist_id)) {
             console.log('[handleStatusUpdate] Artist changed, refreshing artist content dynamically');
 
-            // If we were in creation mode, hide chat interface before showing artist profile
+            // If we were in creation mode, set pending flags for handleTextChunk to process
             if (wasInCreationMode) {
-              (async () => {
-                // Wait for "We're ready" message to be visible
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                document.querySelector('.chat-input-container').classList.add('agent-creation');
-                document.querySelector('.chat-container').classList.add('agent-creation');
-
-                await new Promise(resolve => setTimeout(resolve, 500));
-                document.querySelector('.chat-input-container').style.display = 'none';
-                document.querySelector('.chat-container').style.display = 'none';
-
-                // Now load the artist profile
-                await this.dynamicArtistChange(message.artist_id);
-              })();
+              console.log('[handleStatusUpdate] Setting pending artist transition for:', message.artist_id);
+              this.pendingArtistTransition = true;
+              this.pendingArtistId = message.artist_id;
             } else {
-              // Normal mode - just change artist
+              // Normal mode - just change artist immediately
               this.dynamicArtistChange(message.artist_id);
             }
           }
