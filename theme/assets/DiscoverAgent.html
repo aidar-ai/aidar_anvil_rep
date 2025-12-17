@@ -921,8 +921,11 @@
             this.stage = this.STAGE.NORMAL;
           }
 
-          // Handle valid artist_id that's different from current
-          if (String(currentArtistId) !== String(message.artist_id)) {
+          // Treat non-numeric artist IDs (like 'create_agent', 'None') as null for comparison
+          const normalizedCurrentId = (currentArtistId && !isNaN(Number(currentArtistId))) ? currentArtistId : null;
+
+          // Handle valid artist_id that's different from current (or if current is null/invalid)
+          if (String(normalizedCurrentId) !== String(message.artist_id)) {
             console.log('[handleStatusUpdate] Artist changed, refreshing artist content dynamically');
             this.dynamicArtistChange(message.artist_id);
           }
