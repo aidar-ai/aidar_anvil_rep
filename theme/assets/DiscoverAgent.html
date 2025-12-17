@@ -915,6 +915,12 @@
           const currentArtistId = this.getCurrentArtistId();
           console.log('[handleStatusUpdate] Success message received. Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
 
+          // Transition from create_agent/extended_create_agent to NORMAL mode
+          if (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT) {
+            console.log('[handleStatusUpdate] Transitioning from', this.stage, 'to NORMAL mode');
+            this.stage = this.STAGE.NORMAL;
+          }
+
           // Handle valid artist_id that's different from current
           if (String(currentArtistId) !== String(message.artist_id)) {
             console.log('[handleStatusUpdate] Artist changed, refreshing artist content dynamically');
@@ -2388,16 +2394,7 @@
           });
         }
 
-        // b) Set stage based on whether we have an artist_id
-        if (message.artist_id && message.artist_id !== 'null') {
-          console.log('[handleCreateAgent] Switching to NORMAL mode since we have an artist_id:', message.artist_id);
-          this.stage = this.STAGE.NORMAL;
-        } else {
-          console.log("[handleCreateAgent] Switching to EXTENDED_CREATE_AGENT mode since we don't have an artist_id");
-          this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
-        }
-
-        // d) remove status indicator when we receive the final create_agent message
+        // b) remove status indicator when we receive the final create_agent message
         // The final message has artist_id (either valid ID or null), indicating completion
         if (message.hasOwnProperty('artist_id')) {
           this.removeStatusIndicator();
@@ -2748,10 +2745,16 @@
         try {
           console.log('[showNoArtistsFound] Showing No Artists page dynamically');
 
-          // 1. Update the URL silently (without triggering navigation)
+          // 1. Transition from create_agent to EXTENDED_CREATE_AGENT mode so user can continue searching
+          if (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT) {
+            console.log('[showNoArtistsFound] Transitioning from', this.stage, 'to EXTENDED_CREATE_AGENT mode');
+            this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
+          }
+
+          // 2. Update the URL silently (without triggering navigation)
           history.replaceState(null, '', '#agent_artists?artist_id=None');
 
-          // 2. Call the Python method to handle the "None" artist case
+          // 3. Call the Python method to handle the "None" artist case
           const formElement = document.querySelector('.anvil-container');
           if (formElement) {
             console.log('[showNoArtistsFound] Calling dynamic_artist_change with None via Anvil');
