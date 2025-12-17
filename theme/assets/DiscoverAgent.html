@@ -861,11 +861,18 @@
           if (message.content && typeof message.content === 'string') {
             this.addAgentMessage(message.content);
 
-            console.log('[handleTextChunk] Checking pending transition - pendingArtistTransition:', this.pendingArtistTransition, 'pendingArtistId:', this.pendingArtistId);
+            console.log('[handleTextChunk] Checking pending transition - pendingArtistTransition:', this.pendingArtistTransition, 'pendingArtistId:', this.pendingArtistId, 'stage:', this.stage);
 
-            // If we have a pending artist transition (set by success message during agent creation)
-            if (this.pendingArtistTransition && this.pendingArtistId) {
+            // If we have a pending artist transition AND we're in NORMAL mode (just transitioned from creation)
+            // This ensures we only show "We're ready" during agent creation, not during normal queries
+            if (this.pendingArtistTransition && this.pendingArtistId && this.stage === this.STAGE.NORMAL) {
               console.log('[handleTextChunk] Starting agent creation completion flow');
+
+              // Clear flags immediately to prevent re-triggering
+              const artistIdToLoad = this.pendingArtistId;
+              this.pendingArtistTransition = false;
+              this.pendingArtistId = null;
+
               (async () => {
                 // Wait a moment for the agent message to be visible
                 console.log('[handleTextChunk] Waiting 1.5s before hiding chat');
@@ -889,9 +896,8 @@
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Navigate to artist page (using page reload to ensure backend predictions are ready)
-                console.log('[handleTextChunk] Navigating to artist page:', this.pendingArtistId);
-                window.location.href = `#agent_artists?artist_id=${encodeURIComponent(this.pendingArtistId)}`;
-                // Note: No need to clear pending flags as page will reload
+                console.log('[handleTextChunk] Navigating to artist page:', artistIdToLoad);
+                window.location.href = `#agent_artists?artist_id=${encodeURIComponent(artistIdToLoad)}`;
               })();
             }
           }
