@@ -670,7 +670,7 @@
             type: outboundType,
             content: message,
             timestamp: new Date().toISOString(),
-            user_id: sessionStorage.getItem('user_id'),
+            user_id: parseInt(sessionStorage.getItem('user_id')),
             agent_id: this.model_id,
             request_id: requestId
           };
