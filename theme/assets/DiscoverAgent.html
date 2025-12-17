@@ -867,15 +867,11 @@
             if (this.pendingArtistTransition && this.pendingArtistId) {
               console.log('[handleTextChunk] Starting agent creation completion flow');
               (async () => {
-                // Show creation statement
-                console.log('[handleTextChunk] Waiting 1.5s before showing creation statement');
+                // Wait a moment for the agent message to be visible
+                console.log('[handleTextChunk] Waiting 1.5s before hiding chat');
                 await new Promise(resolve => setTimeout(resolve, 1500));
-                console.log('[handleTextChunk] Showing "We\'re ready" message');
-                document.querySelector('.agent-creation-statement').classList.add('agent-creation');
 
-                // Wait for user to see the message, then hide chat and load artist
-                console.log('[handleTextChunk] Waiting 3s for user to see message');
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Hide chat containers first
                 console.log('[handleTextChunk] Hiding chat containers');
                 document.querySelector('.chat-input-container').classList.add('agent-creation');
                 document.querySelector('.chat-container').classList.add('agent-creation');
@@ -883,6 +879,14 @@
                 await new Promise(resolve => setTimeout(resolve, 500));
                 document.querySelector('.chat-input-container').style.display = 'none';
                 document.querySelector('.chat-container').style.display = 'none';
+
+                // Now show creation statement (chat is hidden, so it appears on full screen)
+                console.log('[handleTextChunk] Showing "We\'re ready" message');
+                document.querySelector('.agent-creation-statement').classList.add('agent-creation');
+
+                // Wait for user to see the message, then navigate
+                console.log('[handleTextChunk] Waiting 3s for user to see message');
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Navigate to artist page (using page reload to ensure backend predictions are ready)
                 console.log('[handleTextChunk] Navigating to artist page:', this.pendingArtistId);
