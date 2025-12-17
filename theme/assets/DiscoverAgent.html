@@ -861,15 +861,22 @@
           if (message.content && typeof message.content === 'string') {
             this.addAgentMessage(message.content);
 
-            // If we're in creation mode and transitioning to an artist, show the "We're ready" message
-            if ((this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT) && this.pendingArtistTransition) {
+            console.log('[handleTextChunk] Checking pending transition - pendingArtistTransition:', this.pendingArtistTransition, 'pendingArtistId:', this.pendingArtistId);
+
+            // If we have a pending artist transition (set by success message during agent creation)
+            if (this.pendingArtistTransition && this.pendingArtistId) {
+              console.log('[handleTextChunk] Starting agent creation completion flow');
               (async () => {
                 // Show creation statement
+                console.log('[handleTextChunk] Waiting 1.5s before showing creation statement');
                 await new Promise(resolve => setTimeout(resolve, 1500));
+                console.log('[handleTextChunk] Showing "We\'re ready" message');
                 document.querySelector('.agent-creation-statement').classList.add('agent-creation');
 
                 // Wait for user to see the message, then hide chat and load artist
+                console.log('[handleTextChunk] Waiting 3s for user to see message');
                 await new Promise(resolve => setTimeout(resolve, 3000));
+                console.log('[handleTextChunk] Hiding chat containers');
                 document.querySelector('.chat-input-container').classList.add('agent-creation');
                 document.querySelector('.chat-container').classList.add('agent-creation');
 
@@ -878,11 +885,11 @@
                 document.querySelector('.chat-container').style.display = 'none';
 
                 // Now load the artist profile
-                if (this.pendingArtistId) {
-                  await this.dynamicArtistChange(this.pendingArtistId);
-                  this.pendingArtistTransition = false;
-                  this.pendingArtistId = null;
-                }
+                console.log('[handleTextChunk] Loading artist profile:', this.pendingArtistId);
+                await this.dynamicArtistChange(this.pendingArtistId);
+                console.log('[handleTextChunk] Clearing pending flags');
+                this.pendingArtistTransition = false;
+                this.pendingArtistId = null;
               })();
             }
           }
