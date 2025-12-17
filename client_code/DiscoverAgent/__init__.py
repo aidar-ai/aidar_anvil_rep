@@ -2833,21 +2833,39 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
     def dynamic_artist_change(self, new_artist_id):
         """Dynamically change to a new artist without page reload (similar to _rate_artist_and_refresh but without rating)"""
+        print(
+            f"[dynamic_artist_change] Starting - new_artist_id: {new_artist_id}"
+        )
+
         # 1. Update the URL dict to reflect the new artist_id
         self.url_dict["artist_id"] = str(new_artist_id)
         save_var("url_artist_id", str(new_artist_id))
+        print(
+            f"[dynamic_artist_change] Updated URL dict and saved url_artist_id"
+        )
 
         # 2. If transitioning from None to a real artist, ensure header and sections are visible
         if str(new_artist_id) != "None":
+            print(f"[dynamic_artist_change] Setting sections visible")
             self.sec_header.visible = True
             self.flow_panel_sections.visible = True
+            self.sec_releases.visible = True
             self.no_artists.visible = False
+            print(
+                f"[dynamic_artist_change] Sections visibility set - sec_header: {self.sec_header.visible}, flow_panel_sections: {self.flow_panel_sections.visible}, sec_releases: {self.sec_releases.visible}"
+            )
 
         # 3. Get basic artist data to retrieve Spotify ID, then start widget immediately
+        print(
+            f"[dynamic_artist_change] Calling get_suggestion for artist: {new_artist_id}"
+        )
         sug = json.loads(
             anvil.server.call(
                 "get_suggestion", "Inspect", self.model_id, new_artist_id
             )
+        )
+        print(
+            f"[dynamic_artist_change] Got suggestion - Status: {sug.get('Status', 'Unknown')}, ArtistName: {sug.get('ArtistName', 'Unknown')}"
         )
 
         if sug.get("SpotifyArtistID") and str(new_artist_id) != "None":
@@ -2865,12 +2883,16 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 )
 
         # 4. Store the suggestion data and refresh UI (no additional server call needed)
+        print(
+            f"[dynamic_artist_change] Storing suggestion and calling refresh_sug"
+        )
         self.sug = sug
         self.refresh_sug(
             skip_spotify_creation=True,
             use_existing_sug=True,
             skip_routing=True,
         )
+        print(f"[dynamic_artist_change] refresh_sug completed")
 
         # 5. Explicitly refresh biography to ensure it shows the new artist's description
         biography = sug.get("Biography")
