@@ -1454,23 +1454,23 @@ class DiscoverAgent(DiscoverAgentTemplate):
             #   watchlist_names = [item['watchlist_name'] for item in wl_data]
             #   self.drop_down_wl.items = watchlist_names
 
-            # --------
-            # d) Models Drop-Down
-            if self.user_id is None:
-                self.drop_down_model.visible = False
-            else:
-                self.drop_down_model.visible = True
-                model_data = json.loads(
-                    anvil.server.call("get_model_ids", self.user_id)
-                )
-                model_name_last_used = [
-                    item["model_name"]
-                    for item in model_data
-                    if item["is_last_used"]
-                ][0]
-                self.drop_down_model.selected_value = model_name_last_used
-                model_names = [item["model_name"] for item in model_data]
-                self.drop_down_model.items = model_names
+            # # --------
+            # # d) Models Drop-Down
+            # if self.user_id is None:
+            #     self.drop_down_model.visible = False
+            # else:
+            #     self.drop_down_model.visible = True
+            #     model_data = json.loads(
+            #         anvil.server.call("get_model_ids", self.user_id)
+            #     )
+            #     model_name_last_used = [
+            #         item["model_name"]
+            #         for item in model_data
+            #         if item["is_last_used"]
+            #     ][0]
+            #     self.drop_down_model.selected_value = model_name_last_used
+            #     model_names = [item["model_name"] for item in model_data]
+            #     self.drop_down_model.items = model_names
 
             # -------------------------------
             # MILESTONE ALERTS & FEEDBACK
