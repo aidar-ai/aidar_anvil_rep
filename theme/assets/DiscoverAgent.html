@@ -916,7 +916,8 @@
           console.log('[handleStatusUpdate] Success message received. Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
 
           // Transition from create_agent/extended_create_agent to NORMAL mode
-          if (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT) {
+          const wasInCreationMode = (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT);
+          if (wasInCreationMode) {
             console.log('[handleStatusUpdate] Transitioning from', this.stage, 'to NORMAL mode');
             this.stage = this.STAGE.NORMAL;
           }
@@ -927,7 +928,26 @@
           // Handle valid artist_id that's different from current (or if current is null/invalid)
           if (String(normalizedCurrentId) !== String(message.artist_id)) {
             console.log('[handleStatusUpdate] Artist changed, refreshing artist content dynamically');
-            this.dynamicArtistChange(message.artist_id);
+
+            // If we were in creation mode, hide chat interface before showing artist profile
+            if (wasInCreationMode) {
+              (async () => {
+                // Wait for "We're ready" message to be visible
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                document.querySelector('.chat-input-container').classList.add('agent-creation');
+                document.querySelector('.chat-container').classList.add('agent-creation');
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+                document.querySelector('.chat-input-container').style.display = 'none';
+                document.querySelector('.chat-container').style.display = 'none';
+
+                // Now load the artist profile
+                await this.dynamicArtistChange(message.artist_id);
+              })();
+            } else {
+              // Normal mode - just change artist
+              this.dynamicArtistChange(message.artist_id);
+            }
           }
         }
 
