@@ -856,18 +856,12 @@
       // Handle text chunk from server
       handleTextChunk(message) {
         try {
-          console.log('[handleTextChunk] Received text chunk:', message);
-
           if (message.content && typeof message.content === 'string') {
             this.addAgentMessage(message.content);
-
-            console.log('[handleTextChunk] Checking pending transition - pendingArtistTransition:', this.pendingArtistTransition, 'pendingArtistId:', this.pendingArtistId, 'stage:', this.stage);
 
             // If we have a pending artist transition AND we're in NORMAL mode (just transitioned from creation)
             // This ensures we only show "We're ready" during agent creation, not during normal queries
             if (this.pendingArtistTransition && this.pendingArtistId && this.stage === this.STAGE.NORMAL) {
-              console.log('[handleTextChunk] Starting agent creation completion flow');
-
               // Clear flags immediately to prevent re-triggering
               const artistIdToLoad = this.pendingArtistId;
               this.pendingArtistTransition = false;
@@ -875,11 +869,9 @@
 
               (async () => {
                 // Wait a moment for the agent message to be visible
-                console.log('[handleTextChunk] Waiting 1.5s before hiding chat');
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Hide chat containers first
-                console.log('[handleTextChunk] Hiding chat containers');
                 document.querySelector('.chat-input-container').classList.add('agent-creation');
                 document.querySelector('.chat-container').classList.add('agent-creation');
 
@@ -888,15 +880,12 @@
                 document.querySelector('.chat-container').style.display = 'none';
 
                 // Now show creation statement (chat is hidden, so it appears on full screen)
-                console.log('[handleTextChunk] Showing "We\'re ready" message');
                 document.querySelector('.agent-creation-statement').classList.add('agent-creation');
 
                 // Wait for user to see the message, then navigate
-                console.log('[handleTextChunk] Waiting 3s for user to see message');
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
                 // Navigate to artist page (using page reload to ensure backend predictions are ready)
-                console.log('[handleTextChunk] Navigating to artist page:', artistIdToLoad);
                 window.location.href = `#agent_artists?artist_id=${encodeURIComponent(artistIdToLoad)}`;
               })();
             }
@@ -953,12 +942,10 @@
         // Check for success message with artist_id to trigger early load
         if (message.content === "Success - matching artist found!" && message.artist_id) {
           const currentArtistId = this.getCurrentArtistId();
-          console.log('[handleStatusUpdate] Success message received. Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
 
           // Transition from create_agent/extended_create_agent to NORMAL mode
           const wasInCreationMode = (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT);
           if (wasInCreationMode) {
-            console.log('[handleStatusUpdate] Transitioning from', this.stage, 'to NORMAL mode');
             this.stage = this.STAGE.NORMAL;
           }
 
@@ -967,11 +954,8 @@
 
           // Handle valid artist_id that's different from current (or if current is null/invalid)
           if (String(normalizedCurrentId) !== String(message.artist_id)) {
-            console.log('[handleStatusUpdate] Artist changed, refreshing artist content dynamically');
-
             // If we were in creation mode, set pending flags for handleTextChunk to process
             if (wasInCreationMode) {
-              console.log('[handleStatusUpdate] Setting pending artist transition for:', message.artist_id);
               this.pendingArtistTransition = true;
               this.pendingArtistId = message.artist_id;
             } else {
@@ -992,7 +976,6 @@
 
           if (statusIndicator) {
             statusIndicator.textContent = message.content;
-            console.log('[handleStatusUpdate] Updated status indicator to:', message.content);
             // Ensure it's visible and scrolled into view
             const messagesContainer = document.getElementById('chat-messages');
             if (messagesContainer) {
