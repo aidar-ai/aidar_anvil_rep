@@ -670,7 +670,7 @@
             type: outboundType,
             content: message,
             timestamp: new Date().toISOString(),
-            user_id: sessionStorage.getItem('user_id'),
+            user_id: parseInt(sessionStorage.getItem('user_id')),
             agent_id: this.model_id,
             request_id: requestId
           };
@@ -856,10 +856,39 @@
       // Handle text chunk from server
       handleTextChunk(message) {
         try {
-          console.log('[handleTextChunk] Received text chunk:', message);
-
           if (message.content && typeof message.content === 'string') {
             this.addAgentMessage(message.content);
+
+            // If we have a pending artist transition AND we're in NORMAL mode (just transitioned from creation)
+            // This ensures we only show "We're ready" during agent creation, not during normal queries
+            if (this.pendingArtistTransition && this.pendingArtistId && this.stage === this.STAGE.NORMAL) {
+              // Clear flags immediately to prevent re-triggering
+              const artistIdToLoad = this.pendingArtistId;
+              this.pendingArtistTransition = false;
+              this.pendingArtistId = null;
+
+              (async () => {
+                // Wait a moment for the agent message to be visible
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // Hide chat containers first
+                document.querySelector('.chat-input-container').classList.add('agent-creation');
+                document.querySelector('.chat-container').classList.add('agent-creation');
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+                document.querySelector('.chat-input-container').style.display = 'none';
+                document.querySelector('.chat-container').style.display = 'none';
+
+                // Now show creation statement (chat is hidden, so it appears on full screen)
+                document.querySelector('.agent-creation-statement').classList.add('agent-creation');
+
+                // Wait for user to see the message, then navigate
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Navigate to artist page (using page reload to ensure backend predictions are ready)
+                window.location.href = `#agent_artists?artist_id=${encodeURIComponent(artistIdToLoad)}`;
+              })();
+            }
           }
         } catch (error) {
           console.error('[handleTextChunk] Error processing text chunk:', error);
@@ -910,6 +939,32 @@
           // return;
         }
 
+        // Check for success message with artist_id to trigger early load
+        if (message.content === "Success - matching artist found!" && message.artist_id) {
+          const currentArtistId = this.getCurrentArtistId();
+
+          // Transition from create_agent/extended_create_agent to NORMAL mode
+          const wasInCreationMode = (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT);
+          if (wasInCreationMode) {
+            this.stage = this.STAGE.NORMAL;
+          }
+
+          // Treat non-numeric artist IDs (like 'create_agent', 'None') as null for comparison
+          const normalizedCurrentId = (currentArtistId && !isNaN(Number(currentArtistId))) ? currentArtistId : null;
+
+          // Handle valid artist_id that's different from current (or if current is null/invalid)
+          if (String(normalizedCurrentId) !== String(message.artist_id)) {
+            // If we were in creation mode, set pending flags for handleTextChunk to process
+            if (wasInCreationMode) {
+              this.pendingArtistTransition = true;
+              this.pendingArtistId = message.artist_id;
+            } else {
+              // Normal mode - just change artist immediately
+              this.dynamicArtistChange(message.artist_id);
+            }
+          }
+        }
+
         // Always ensure we have a visible status indicator for status updates
         if (message.content) {
           // Find existing status indicator in DOM or create one
@@ -921,7 +976,6 @@
 
           if (statusIndicator) {
             statusIndicator.textContent = message.content;
-            console.log('[handleStatusUpdate] Updated status indicator to:', message.content);
             // Ensure it's visible and scrolled into view
             const messagesContainer = document.getElementById('chat-messages');
             if (messagesContainer) {
@@ -2262,21 +2316,13 @@
 
           // Check if we have an artist_id in the response
           if (message.hasOwnProperty('artist_id')) {
-            const currentArtistId = this.getCurrentArtistId();
-            console.log('[handleCompleteMessage] Checking artist_id - Current:', currentArtistId, 'New:', message.artist_id);
-
             // Handle null artist_id (no artists found)
             if (message.artist_id === null || message.artist_id === 'null') {
               console.log('[handleCompleteMessage] No artists found (artist_id is null)');
               this.showNoArtistsFound();
             }
-            // Handle valid artist_id that's different from current
-            else if (String(currentArtistId) !== String(message.artist_id)) {
-              console.log('[handleCompleteMessage] Artist changed, refreshing artist content dynamically');
-              this.dynamicArtistChange(message.artist_id);
-            } else {
-              console.log('[handleCompleteMessage] Same artist, no reload needed');
-            }
+            // Note: Successful artist loading is now handled by the "Success" status update message
+            // to trigger the reload earlier in the process.
           }
         }
       }
@@ -2384,46 +2430,12 @@
           });
         }
 
-        // b) Set stage based on whether we have an artist_id
-        if (message.artist_id && message.artist_id !== 'null') {
-          console.log('[handleCreateAgent] Switching to NORMAL mode since we have an artist_id:', message.artist_id);
-          this.stage = this.STAGE.NORMAL;
-        } else {
-          console.log("[handleCreateAgent] Switching to EXTENDED_CREATE_AGENT mode since we don't have an artist_id");
-          this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
-        }
+        // b) remove status indicator when we receive the final create_agent message
+        // Note: The complete message no longer contains artist_id, so we just keep the status indicator
+        // until the success message arrives and triggers the transition
+        console.log('[handleCreateAgent] Keeping status indicator - intermediate create_agent message (no artist_id field)');
 
-        // d) remove status indicator when we receive the final create_agent message
-        // The final message has artist_id (either valid ID or null), indicating completion
-        if (message.hasOwnProperty('artist_id')) {
-          this.removeStatusIndicator();
-          console.log('[handleCreateAgent] Removed status indicator - agent creation complete. artist_id:', message.artist_id);
-        } else {
-          console.log('[handleCreateAgent] Keeping status indicator - intermediate create_agent message (no artist_id field)');
-        }
-
-        // e) navigate to agent page if artist_id is not null
-        if (message.artist_id !== null && message.artist_id !== undefined && message.artist_id !== '' && message.artist_id !== 'null') {
-          // Hide chat containers first
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          document.querySelector('.chat-input-container').classList.add('agent-creation');
-          document.querySelector('.chat-container').classList.add('agent-creation');
-
-          await new Promise(resolve => setTimeout(resolve, 500));
-          document.querySelector('.chat-input-container').style.display = 'none';
-          document.querySelector('.chat-container').style.display = 'none';
-
-          // Show creation statement
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          document.querySelector('.agent-creation-statement').classList.add('agent-creation');
-          // Update sessionStorage for model_id
-          const normalizedAgentId2 = this.normalizeId(message.agent_id);
-          if (normalizedAgentId2) { sessionStorage.setItem('model_id', normalizedAgentId2); }
-
-          // Navigate to agent page
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          window.location.href = `#agent_artists?artist_id=${encodeURIComponent(message.artist_id)}`;
-        }
+        // Note: Artist profile loading is now handled by the success message flow in handleStatusUpdate + handleTextChunk
       }
 
       // Add a new model to the navigation
@@ -2744,10 +2756,16 @@
         try {
           console.log('[showNoArtistsFound] Showing No Artists page dynamically');
 
-          // 1. Update the URL silently (without triggering navigation)
+          // 1. Transition from create_agent to EXTENDED_CREATE_AGENT mode so user can continue searching
+          if (this.stage === this.STAGE.CREATE_AGENT || this.stage === this.STAGE.EXTENDED_CREATE_AGENT) {
+            console.log('[showNoArtistsFound] Transitioning from', this.stage, 'to EXTENDED_CREATE_AGENT mode');
+            this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
+          }
+
+          // 2. Update the URL silently (without triggering navigation)
           history.replaceState(null, '', '#agent_artists?artist_id=None');
 
-          // 2. Call the Python method to handle the "None" artist case
+          // 3. Call the Python method to handle the "None" artist case
           const formElement = document.querySelector('.anvil-container');
           if (formElement) {
             console.log('[showNoArtistsFound] Calling dynamic_artist_change with None via Anvil');
