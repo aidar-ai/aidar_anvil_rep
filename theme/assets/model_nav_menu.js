@@ -9,36 +9,36 @@ if (typeof window.activeMenuTimeout === 'undefined') {
 
 function initializeModelNavigation() {
     console.log('🔧 Initializing model navigation...');
-    
+
     // Add click listeners to all three-dot icons with capture phase for better Chrome compatibility
     document.addEventListener('click', handleDocumentClick, true);
-    
+
     // Also add a non-capturing listener as fallback
     document.addEventListener('click', handleDocumentClickBubble, false);
-    
+
     console.log('✅ Model navigation initialized successfully');
 }
 
 // Primary click handler (capture phase) - better for Chrome
 function handleDocumentClick(e) {
     console.log('🖱️ Capture phase click on:', e.target);
-    
+
     // Handle three-dot icon clicks
     if (e.target.closest('[anvil-role="icon-link-discreet"]')) {
         console.log('✅ Three-dot icon clicked (capture)!');
         e.preventDefault();
         e.stopImmediatePropagation(); // Stronger stop for Chrome
-        
+
         handleThreeDotsClick(e);
         return;
     }
-    
+
     // Handle individual option clicks
     if (e.target.closest('.option-icon')) {
         console.log('✅ Option icon clicked (capture)!');
         e.preventDefault();
         e.stopImmediatePropagation();
-        
+
         handleOptionIconClick(e);
         return;
     }
@@ -51,9 +51,9 @@ function handleDocumentClickBubble(e) {
         console.log('🔄 Skipping bubble handler - menu is toggling');
         return;
     }
-    
+
     // Only handle "click outside" logic in bubble phase
-    if (!e.target.closest('.model-options-expanded') && 
+    if (!e.target.closest('.model-options-expanded') &&
         !e.target.closest('[anvil-role="icon-link-discreet"]') &&
         !e.target.closest('.option-icon')) {
         console.log('🔄 Closing all menus (clicked outside - bubble)');
@@ -75,10 +75,10 @@ function handleThreeDotsClick(e) {
         flowPanel = dotsLink.closest('.flow-panel, .flow-panel-item, .anvil-container, .sidebar-elt, .content');
         console.log('🧭 Fallback flowPanel:', flowPanel);
     }
-    
+
     console.log('📋 Model ID:', modelId);
     console.log('📋 Flow Panel:', flowPanel);
-    
+
     if (flowPanel) {
         // Set toggle flag to prevent immediate close
         window.isMenuToggling = true;
@@ -110,9 +110,9 @@ function handleOptionIconClick(e) {
         modelId = resolveModelIdFromElement(fp) || resolveModelIdFromElement(optionIcon);
         console.log('🔑 Fallback modelId via container/element resolve:', modelId);
     }
-    
+
     console.log('📋 Action:', action, 'Model ID:', modelId);
-    
+
     handleOptionClick(action, modelId);
 }
 
@@ -311,20 +311,20 @@ function resortNavModels() {
 function toggleModelOptions(flowPanel, modelId) {
     console.log('🔄 Toggling model options for:', modelId);
     console.log('🔄 Flow panel:', flowPanel);
-    
+
     // Clear any existing timeout
     if (window.activeMenuTimeout) {
         clearTimeout(window.activeMenuTimeout);
         window.activeMenuTimeout = null;
     }
-    
+
     // Close other open menus first
     closeAllMenus();
-    
+
     // Check if this panel already has expanded options
     let expandedContainer = flowPanel.querySelector('.model-options-expanded');
     console.log('🔍 Existing expanded container:', expandedContainer);
-    
+
     if (!expandedContainer) {
         // Create the expanded options container
         if (!modelId) {
@@ -332,7 +332,7 @@ function toggleModelOptions(flowPanel, modelId) {
             console.log('🔑 Resolved modelId inside toggle from flowPanel:', modelId);
         }
         expandedContainer = createExpandedOptions(modelId);
-        
+
         // Find the flow-panel-gutter to append to
         const gutter = flowPanel.querySelector('.flow-panel-gutter');
         console.log('🔍 Flow panel gutter:', gutter);
@@ -344,31 +344,31 @@ function toggleModelOptions(flowPanel, modelId) {
             flowPanel.appendChild(expandedContainer);
         }
     }
-    
+
     // Add expanded class to flow panel and dots
     flowPanel.classList.add('expanded');
     console.log('✅ Added expanded class to flow panel');
-    
+
     const dotsLink = flowPanel.querySelector('[anvil-role="icon-link-discreet"]');
     console.log('🔍 Dots link:', dotsLink);
     if (dotsLink) {
         dotsLink.classList.add('expanded');
         console.log('✅ Added expanded class to dots link');
     }
-    
+
     // Ensure positioning context for absolute menu
     const currentPosition = getComputedStyle(flowPanel).position;
     if (currentPosition === 'static' || !currentPosition) {
         flowPanel.style.position = 'relative';
         console.log('🧭 Set flowPanel position: relative for menu positioning');
     }
-    
+
     // Show the expanded container with improved timing for Chrome
     // Use requestAnimationFrame for better browser compatibility
     requestAnimationFrame(() => {
         expandedContainer.classList.add('active');
         console.log('✅ Added active class to expanded container');
-        
+
         // Set a timeout to track when menu is fully established
         window.activeMenuTimeout = setTimeout(() => {
             console.log('📍 Menu fully established and stable');
@@ -380,26 +380,26 @@ function toggleModelOptions(flowPanel, modelId) {
 // 3. Create expanded options container
 function createExpandedOptions(modelId) {
     console.log('🏗️ Creating expanded options for model:', modelId);
-    
+
     const container = document.createElement('div');
     container.className = 'model-options-expanded';
     // propagate model id on container for fallback
     if (modelId != null) {
         container.dataset.modelId = modelId;
     }
-    
+
     // Pin icon
     const pinIcon = createOptionIcon('fa-thumb-tack', 'pin', modelId, 'pin agent');
-    
+
     // Megaphone icon
     const megaphoneIcon = createOptionIcon('fa-bullhorn', 'notifications', modelId, 'pin agent & activate notification');
-    
+
     // Settings icon
     const settingsIcon = createOptionIcon('fa-sliders', 'settings', modelId, 'agent profile');
-    
+
     // Trash icon
     const trashIcon = createOptionIcon('fa-trash', 'delete', modelId, 'delete agent');
-    
+
     // Reflect pinned state in menu icon
     try {
         if (isModelPinned(modelId)) {
@@ -414,7 +414,7 @@ function createExpandedOptions(modelId) {
     container.appendChild(megaphoneIcon);
     container.appendChild(settingsIcon);
     container.appendChild(trashIcon);
-    
+
     console.log('✅ Created expanded options container with 4 icons');
     return container;
 }
@@ -433,7 +433,7 @@ function createOptionIcon(iconClass, action, modelId, title) {
 // 5. Handle option clicks
 async function handleOptionClick(action, modelId) {
     console.log('Option clicked:', action, 'for model:', modelId);
-    
+
     switch (action) {
         case 'settings':
             // Use Anvil's routing system instead of direct hash change
@@ -605,7 +605,7 @@ async function handleOptionClick(action, modelId) {
             break;
         }
     }
-    
+
     // Close the menu after action
     closeAllMenus();
 }
@@ -617,18 +617,18 @@ function closeAllMenus() {
         clearTimeout(window.activeMenuTimeout);
         window.activeMenuTimeout = null;
     }
-    
+
     // Remove expanded class from all flow panels
     const expandedPanels = document.querySelectorAll('[anvil-role="nav_flow_panel"].expanded');
     expandedPanels.forEach(panel => {
         panel.classList.remove('expanded');
-        
+
         // Remove expanded class from dots
         const dotsLink = panel.querySelector('[anvil-role="icon-link-discreet"]');
         if (dotsLink) {
             dotsLink.classList.remove('expanded');
         }
-        
+
         // Remove expanded options
         const expandedContainer = panel.querySelector('.model-options-expanded');
         if (expandedContainer) {
@@ -651,6 +651,22 @@ function clearModelNavigation() {
         window.activeMenuTimeout = null;
     }
     closeAllMenus();
+
+    // Remove JavaScript-added navigation items
+    // These are <li> elements added by addNewModelToNavigation in DiscoverAgent.html
+    const navModels = document.querySelector('.anvil-role-nav_models');
+    if (navModels) {
+        const linearPanel = navModels.querySelector('ul.linear-panel');
+        if (linearPanel) {
+            // Find all <li> elements that were added by JavaScript (not by Anvil)
+            // Anvil-created items are wrapped in <li class="anvil-component">
+            // JS-created items are just <li> without anvil-component class
+            const jsAddedItems = Array.from(linearPanel.querySelectorAll('li:not(.anvil-component)'));
+            jsAddedItems.forEach(item => {
+                item.remove();
+            });
+        }
+    }
 }
 
 // 8.1. Sync initial model states (pinned / notifications) after Anvil renders rows

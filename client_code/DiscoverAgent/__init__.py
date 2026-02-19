@@ -54,9 +54,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             user["expiration_date"] is not None
             and (datetime.today().date() - user["expiration_date"]).days > 0
         ):
-            routing.set_url_hash(
-                "settings?section=Subscription", load_from_cache=False
-            )
+            routing.set_url_hash("settings?section=Subscription", load_from_cache=False)
             get_open_form().SearchBar.visible = False
 
         else:
@@ -70,8 +68,27 @@ class DiscoverAgent(DiscoverAgentTemplate):
         # -----------
         # 1. Check if we're in create_agent mode
         if self.url_dict.get("artist_id") == "create_agent":
-            self.call_js("createAgentView")
-            self.call_js("updateModelId", None)
+            # Check if a valid agent was already created in this session
+            existing_model_id = load_var("model_id")
+            # Only switch to extended mode if we have a valid numeric agent ID
+            # (not None, not "None", and not a random session ID string)
+            is_valid_agent_id = False
+            if existing_model_id is not None and existing_model_id != "None":
+                try:
+                    # Check if it's a valid integer (database agent ID)
+                    int(existing_model_id)
+                    is_valid_agent_id = True
+                except (ValueError, TypeError):
+                    # It's a random session ID string, not a valid agent ID
+                    is_valid_agent_id = False
+
+            if is_valid_agent_id:
+                # Valid agent already exists - switch to extended create mode
+                self.call_js("createExtendedAgentView")
+            else:
+                # No valid agent yet - start fresh creation
+                self.call_js("createAgentView")
+                self.call_js("updateModelId", None)
         elif self.url_dict.get("artist_id") == "extended_create_agent":
             self.call_js("createExtendedAgentView")
 
@@ -108,9 +125,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 messages = anvil.server.call("get_agent_messages", model_id)
                 self.call_js("loadMessageHistory", messages)
         except Exception as e:
-            print(
-                f"[WebSocketManager - DiscoverAgent] Error in form_show: {str(e)}"
-            )
+            print(f"[WebSocketManager - DiscoverAgent] Error in form_show: {str(e)}")
 
     # -------------------------------------------
     # SUGGESTIONS
@@ -150,13 +165,8 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         # model_id
         model_id = load_var("model_id")
-        if (
-            model_id is None
-            and self.url_dict.get("artist_id") != "create_agent"
-        ):
-            save_var(
-                "model_id", anvil.server.call("get_model_id", self.user_id)
-            )
+        if model_id is None and self.url_dict.get("artist_id") != "create_agent":
+            save_var("model_id", anvil.server.call("get_model_id", self.user_id))
         self.model_id = model_id
         print(f"Discover model_id: {model_id}")
 
@@ -177,21 +187,16 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         # check for missing artist_id
         if url_artist_id in ["get_artist", "extended_create_agent"]:
-            get_open_form().refresh_models_components()
-            get_open_form().refresh_models_underline()
-            url_artist_id = anvil.server.call(
-                "get_next_artist_id", self.model_id
-            )
+            # Only refresh navigation when a new agent was just created
+            if url_artist_id == "extended_create_agent":
+                get_open_form().refresh_models_components()
+                get_open_form().refresh_models_underline()
+            url_artist_id = anvil.server.call("get_next_artist_id", self.model_id)
             print("updated url_artist_id:", url_artist_id)
-            history.replaceState(
-                None, "", f"#agent_artists?artist_id={url_artist_id}"
-            )
+            history.replaceState(None, "", f"#agent_artists?artist_id={url_artist_id}")
 
         # check if we are creating a new agent - skip get_suggestion call
-        if (
-            url_artist_id == "create_agent"
-            or url_artist_id == "extended_create_agent"
-        ):
+        if url_artist_id == "create_agent" or url_artist_id == "extended_create_agent":
             return
 
         # get_suggestion
@@ -252,9 +257,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         else:
             # TRIAL NOTIFICATION
             if user["plan"] in ["Trial", "Extended Trial"]:
-                usage_data = anvil.server.call(
-                    "get_ratings_count", user["user_id"]
-                )
+                usage_data = anvil.server.call("get_ratings_count", user["user_id"])
 
                 # Get latest max_trial_ratings from server
                 max_trial_ratings = anvil.server.call(
@@ -368,9 +371,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             else:
                 genres_string = sug["Genres"]
                 # Clean up the string and convert to list
-                genres_string_cleaned = genres_string.strip("[]").replace(
-                    "'", ""
-                )
+                genres_string_cleaned = genres_string.strip("[]").replace("'", "")
                 genres_list = [
                     genre.strip() for genre in genres_string_cleaned.split(",")
                 ]
@@ -405,17 +406,13 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     if social_media_list[i]["platform"] in platform_dict:
                         found = True
                         social_media_link = Link(
-                            icon=platform_dict[
-                                social_media_list[i]["platform"]
-                            ]
+                            icon=platform_dict[social_media_list[i]["platform"]]
                         )
                         social_media_link.role = "music-icons-tile"
 
                     if found is True:
                         # social_media_link.role = 'genre-box'
-                        social_media_link.url = social_media_list[i][
-                            "platform_url"
-                        ]
+                        social_media_link.url = social_media_list[i]["platform_url"]
                         self.flow_panel_social_media_tile.add_component(
                             social_media_link
                         )
@@ -466,9 +463,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.KPI_tile_1.text = "-"
             else:
                 self.KPI_tile_1.text = (
-                    "{:.0f}".format(
-                        round(float(sug["prediction_size"]) / 7 * 100, 0)
-                    )
+                    "{:.0f}".format(round(float(sug["prediction_size"]) / 7 * 100, 0))
                     + "%"
                 )
 
@@ -477,9 +472,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.KPI_tile_2.text = "-"
             else:
                 self.KPI_tile_2.text = (
-                    "{:.0f}".format(
-                        round(float(sug["prediction_rel"]) / 7 * 100, 0)
-                    )
+                    "{:.0f}".format(round(float(sug["prediction_rel"]) / 7 * 100, 0))
                     + "%"
                 )
 
@@ -499,17 +492,13 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.KPI_tile_4.text = "-"
             else:
                 self.KPI_tile_4.text = (
-                    "{:.0f}".format(
-                        round(float(sug["prediction_growth"]) / 7 * 100, 0)
-                    )
+                    "{:.0f}".format(round(float(sug["prediction_growth"]) / 7 * 100, 0))
                     + "%"
                 )
 
             # --------
             # prediction
-            if (str(sug["Prediction"]) == "nan") or (
-                str(sug["Prediction"]) == "None"
-            ):
+            if (str(sug["Prediction"]) == "nan") or (str(sug["Prediction"]) == "None"):
                 self.column_panel_circle.visible = False
                 self.no_prediction.visible = True
                 self.pred = None
@@ -550,9 +539,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
                 if sug["ev_sp_fol_30"] != "None":
                     val = int(
-                        "{:.0f}".format(
-                            round(float(sug["ev_sp_fol_30"]) * 100, 0)
-                        )
+                        "{:.0f}".format(round(float(sug["ev_sp_fol_30"]) * 100, 0))
                     )
                     if val >= 3:
                         ev = f"+{val}%"
@@ -610,9 +597,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 smc = "-"
             self.sub_major_coop.text = smc
 
-            co_artists = json.loads(
-                anvil.server.call("get_co_artists", artist_id)
-            )
+            co_artists = json.loads(anvil.server.call("get_co_artists", artist_id))
             if co_artists == []:
                 self.co_artists_avg.text = "0"
             else:
@@ -656,9 +641,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             self.sort_dropdown.set_event_handler("change", self.sort_data)
 
             # Load the data when the form is initialized
-            labels_freq = json.loads(
-                anvil.server.call("get_labels_freq", artist_id)
-            )
+            labels_freq = json.loads(anvil.server.call("get_labels_freq", artist_id))
             if labels_freq != []:
                 labels = [x["LabelName"] for x in labels_freq]
                 cooperations = [x["NoLabels"] for x in labels_freq]
@@ -777,16 +760,12 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     cont = True
                 elif dev == "dev2" and sug["ArtistFollower_lat"] != "None":
                     cont = True
-                elif (
-                    dev == "dev3" and sug["SpotifyMtlListeners_lat"] != "None"
-                ):
+                elif dev == "dev3" and sug["SpotifyMtlListeners_lat"] != "None":
                     cont = True
                 elif dev == "dev4" and sug["TikTokFollower_lat"] != "None":
                     cont = True
 
-                lab_0, val_0, lab_7, val_7, ev_7, lab_30, val_30, ev_30 = (
-                    ev_dict[dev]
-                )
+                lab_0, val_0, lab_7, val_7, ev_7, lab_30, val_30, ev_30 = ev_dict[dev]
 
                 if cont is False:
                     getattr(self, lab_0).content = (
@@ -840,9 +819,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                         getattr(self, lab_30).content = (
                             f"""<span style="font-family: GS-regular; font-size: 20px; color: rgb(255, 255, 255);">{get_open_form().shorten_number(val_30)}</span>"""
                         )
-                        val = int(
-                            "{:.0f}".format(round(float(ev_30) * 100, 0))
-                        )
+                        val = int("{:.0f}".format(round(float(ev_30) * 100, 0)))
                         if val >= 3:
                             ev = f"""+{val}%"""
                             "{:.0f}".format(round(float(ev_30) * 100, 0))
@@ -877,9 +854,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.KPI_2.content = f"""<span style="font-family: GS-regular; font-size: 20px; color: rgb(255, 255, 255); padding-left: 10px;">{get_open_form().shorten_number(sp_mtl_lis_lat)}</span>"""
                 if sug["ev_sp_li_30"] != "None":
                     val = int(
-                        "{:.0f}".format(
-                            round(float(sug["ev_sp_li_30"]) * 100, 0)
-                        )
+                        "{:.0f}".format(round(float(sug["ev_sp_li_30"]) * 100, 0))
                     )
                     if val >= 3:
                         ev = f"+{val}%"
@@ -896,9 +871,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.sp_mtl_listeners.text = f"{int(sp_mtl_lis_lat):,}"
 
                 dates = [x["Date"] for x in monthly_listeners_data]
-                monthly_listeners = [
-                    x["MtlListeners"] for x in monthly_listeners_data
-                ]
+                monthly_listeners = [x["MtlListeners"] for x in monthly_listeners_data]
                 self.listeners_data = {
                     "dates": dates,
                     "monthly_listeners": monthly_listeners,
@@ -943,9 +916,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 }
                 self.Spotify_Monthly_Listeners_by_Country_Graph.visible = True
                 self.flow_panel_countries.visible = True
-                self.No_Spotify_Monthly_Listeners_by_Country_Graph.visible = (
-                    False
-                )
+                self.No_Spotify_Monthly_Listeners_by_Country_Graph.visible = False
 
                 self.create_monthly_listeners_by_country_bar_chart()
 
@@ -953,9 +924,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.audience_country.text = "-"
                 self.Spotify_Monthly_Listeners_by_Country_Graph.visible = False
                 self.flow_panel_countries.visible = False
-                self.No_Spotify_Monthly_Listeners_by_Country_Graph.visible = (
-                    True
-                )
+                self.No_Spotify_Monthly_Listeners_by_Country_Graph.visible = True
 
             # --------
             # c) mtl. listeners city
@@ -969,8 +938,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 ]
 
                 city_w_country_code = [
-                    x["CityWithCountryCode"]
-                    for x in monthly_listeners_city_data
+                    x["CityWithCountryCode"] for x in monthly_listeners_city_data
                 ]
                 monthly_listeners = [
                     x["MtlListeners"] for x in monthly_listeners_city_data
@@ -1001,17 +969,13 @@ class DiscoverAgent(DiscoverAgentTemplate):
             if audience_follower != []:
                 # Initialize a dictionary to hold data for each platform
                 self.no_social_media.visible = False
-                platform_data = defaultdict(
-                    lambda: {"dates": [], "followers": []}
-                )
+                platform_data = defaultdict(lambda: {"dates": [], "followers": []})
 
                 # Populate the dictionary with data
                 for entry in audience_follower:
                     platform = entry["Platform"]
                     platform_data[platform]["dates"].append(entry["Date"])
-                    platform_data[platform]["followers"].append(
-                        entry["ArtistFollower"]
-                    )
+                    platform_data[platform]["followers"].append(entry["ArtistFollower"])
 
                 if platform_data["tiktok"]["dates"] != []:
                     tiktok_fol_lat = platform_data["tiktok"]["followers"][-1]
@@ -1020,9 +984,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     self.KPI_3.content = f"""<span style="font-family: GS-regular; font-size: 20px; color: rgb(255, 255, 255); padding-left: 10px;">{get_open_form().shorten_number(tiktok_fol_lat)}</span>"""
                     if sug["ev_tt_fol_30"] != "None":
                         val = int(
-                            "{:.0f}".format(
-                                round(float(sug["ev_tt_fol_30"]) * 100, 0)
-                            )
+                            "{:.0f}".format(round(float(sug["ev_tt_fol_30"]) * 100, 0))
                         )
                         if val >= 3:
                             ev = f"+{val}%"
@@ -1041,12 +1003,8 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     self.KPI_3.content = """<span style="font-family: GS-regular; font-size: 20px; color: rgb(255, 255, 255); padding-left: 10px;">-</span>"""
 
                 if platform_data["soundcloud"]["dates"] != []:
-                    soundcloud_fol_lat = platform_data["soundcloud"][
-                        "followers"
-                    ][-1]
-                    self.soundcloud_follower.text = (
-                        f"{int(soundcloud_fol_lat):,}"
-                    )
+                    soundcloud_fol_lat = platform_data["soundcloud"]["followers"][-1]
+                    self.soundcloud_follower.text = f"{int(soundcloud_fol_lat):,}"
 
                 def create_social_media_followers_chart(data, platform, color):
                     # Format the text for the bar annotations
@@ -1097,12 +1055,10 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
                 # INSTAGRAM
                 if platform_data["instagram"]["dates"]:
-                    self.instagram_chart.figure = (
-                        create_social_media_followers_chart(
-                            platform_data["instagram"],
-                            "Instagram",
-                            "rgb(253, 101, 45)",
-                        )
+                    self.instagram_chart.figure = create_social_media_followers_chart(
+                        platform_data["instagram"],
+                        "Instagram",
+                        "rgb(253, 101, 45)",
                     )
                     self.no_instagram.visible = False
                 else:
@@ -1112,12 +1068,10 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
                 # TIKTOK
                 if platform_data["tiktok"]["dates"]:
-                    self.tiktok_chart.figure = (
-                        create_social_media_followers_chart(
-                            platform_data["tiktok"],
-                            "TikTok",
-                            "rgb(0, 153, 204)",
-                        )
+                    self.tiktok_chart.figure = create_social_media_followers_chart(
+                        platform_data["tiktok"],
+                        "TikTok",
+                        "rgb(0, 153, 204)",
                     )
                     self.no_tiktok.visible = False
                 else:
@@ -1128,12 +1082,10 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
                 # YOUTUBE
                 if platform_data["youtube"]["dates"]:
-                    self.youtube_chart.figure = (
-                        create_social_media_followers_chart(
-                            platform_data["youtube"],
-                            "YouTube",
-                            "rgb(255, 0, 0)",
-                        )
+                    self.youtube_chart.figure = create_social_media_followers_chart(
+                        platform_data["youtube"],
+                        "YouTube",
+                        "rgb(255, 0, 0)",
                     )
                     self.no_youtube.visible = False
                 else:
@@ -1143,12 +1095,10 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
                 # SOUNDCLOUD
                 if platform_data["soundcloud"]["dates"]:
-                    self.soundcloud_chart.figure = (
-                        create_social_media_followers_chart(
-                            platform_data["soundcloud"],
-                            "SoundCloud",
-                            "rgb(205, 60, 0)",
-                        )
+                    self.soundcloud_chart.figure = create_social_media_followers_chart(
+                        platform_data["soundcloud"],
+                        "SoundCloud",
+                        "rgb(205, 60, 0)",
                     )
                     self.no_soundcloud.visible = False
                 else:
@@ -1167,9 +1117,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             # IV. SHORTS
 
             # get data
-            shorts_data = anvil.server.call(
-                "get_shorts_artist", artist_id, 0, 0
-            )
+            shorts_data = anvil.server.call("get_shorts_artist", artist_id, 0, 0)
 
             # stats
             # if shorts_data['header'] is not None and len(shorts_data['header']) > 0:
@@ -1213,9 +1161,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
                     self.num_shorts = len(shorts)
                     for i in range(0, len(shorts)):
-                        self.flow_panel_shorts.add_component(
-                            C_Short(data=shorts[i])
-                        )
+                        self.flow_panel_shorts.add_component(C_Short(data=shorts[i]))
 
             # # -------------------------------
             # # V. MUSICAL
@@ -1228,9 +1174,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             if sug["AvgDanceability"] == "None":
                 f2 = "-"
             else:
-                f2 = "{:.0f}".format(
-                    round(float(sug["AvgDanceability"]) * 100, 0)
-                )
+                f2 = "{:.0f}".format(round(float(sug["AvgDanceability"]) * 100, 0))
             self.feature_2.text = f"{f2}%"
             if sug["AvgEnergy"] == "None":
                 f3 = "-"
@@ -1271,30 +1215,22 @@ class DiscoverAgent(DiscoverAgentTemplate):
             if sug["AvgSpeechiness"] == "None":
                 f7 = "-"
             else:
-                f7 = "{:.0f}".format(
-                    round(float(sug["AvgSpeechiness"]) * 100, 0)
-                )
+                f7 = "{:.0f}".format(round(float(sug["AvgSpeechiness"]) * 100, 0))
             self.feature_7.text = f"{f7}%"
             if sug["AvgAcousticness"] == "None":
                 f8 = "-"
             else:
-                f8 = "{:.0f}".format(
-                    round(float(sug["AvgAcousticness"]) * 100, 0)
-                )
+                f8 = "{:.0f}".format(round(float(sug["AvgAcousticness"]) * 100, 0))
             self.feature_8.text = f"{f8}%"
             if sug["AvgInstrumentalness"] == "None":
                 f9 = "-"
             else:
-                f9 = "{:.0f}".format(
-                    round(float(sug["AvgInstrumentalness"]) * 100, 0)
-                )
+                f9 = "{:.0f}".format(round(float(sug["AvgInstrumentalness"]) * 100, 0))
             self.feature_9.text = f"{f9}%"
             if sug["AvgLiveness"] == "None":
                 f10 = "-"
             else:
-                f10 = "{:.0f}".format(
-                    round(float(sug["AvgLiveness"]) * 100, 0)
-                )
+                f10 = "{:.0f}".format(round(float(sug["AvgLiveness"]) * 100, 0))
             self.feature_10.text = f"{f10}%"
             if sug["AvgValence"] == "None":
                 f11 = "-"
@@ -1317,14 +1253,12 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 # a) stats
                 self.time_since_last_event.text = (
                     event_data["header"]["time_since_last_event"]
-                    if event_data["header"]["time_since_last_event"]
-                    is not None
+                    if event_data["header"]["time_since_last_event"] is not None
                     else "-"
                 )
                 self.time_until_next_event.text = (
                     event_data["header"]["time_until_next_event"]
-                    if event_data["header"]["time_until_next_event"]
-                    is not None
+                    if event_data["header"]["time_until_next_event"] is not None
                     else "-"
                 )
                 self.events_last_365days.text = (
@@ -1334,8 +1268,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 )
                 self.concert_festival_ratio.text = (
                     event_data["header"]["concert_festival_ratio"]
-                    if event_data["header"]["concert_festival_ratio"]
-                    is not None
+                    if event_data["header"]["concert_festival_ratio"] is not None
                     else "-"
                 )
                 self.no_events.text = (
@@ -1374,9 +1307,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 # print('event_data["cycle"]:', event_data["cycle"])
                 self.no_event_cycle.visible = False
                 self.Event_Timing_Graph.visible = True
-                self.create_event_timing_scatter_chart(
-                    data=event_data["cycle"]
-                )
+                self.create_event_timing_scatter_chart(data=event_data["cycle"])
 
                 # e) country
                 # print('event_data["country"]:', event_data["country"])
@@ -1434,9 +1365,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     self.spotify_artist_button.icon = "fa:pause-circle"
             # --------
             # b) Filter Button visibility
-            activefilters = anvil.server.call(
-                "check_filter_presence", self.model_id
-            )
+            activefilters = anvil.server.call("check_filter_presence", self.model_id)
             if activefilters == "False":
                 self.button_remove_filters.visible = False
             else:
@@ -1550,9 +1479,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                     try:
                         self.call_js("animateCircles")
                     except:
-                        print(
-                            f"[PredCircle] All animation trigger attempts failed"
-                        )
+                        print(f"[PredCircle] All animation trigger attempts failed")
         else:
             print("NO SELF PRED?")
 
@@ -1639,9 +1566,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                         hoverinfo="none",
                         hovertext=[
                             f"Date: {date.strftime('%Y-%m-%d')}<br>Track: {track}<br>Label: {label}"
-                            for date, track, label in zip(
-                                dates, tracks, labels
-                            )
+                            for date, track, label in zip(dates, tracks, labels)
                         ],
                         hovertemplate="%{hovertext}<extra></extra>",
                         marker=dict(
@@ -1713,9 +1638,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
                         hoverinfo="none",
                         hovertext=[
                             f"{date.strftime('%Y-%m-%d')}<br>{place}<br>{event_name}"
-                            for date, place, event_name in zip(
-                                dates, place, event_name
-                            )
+                            for date, place, event_name in zip(dates, place, event_name)
                         ],
                         hovertemplate="%{hovertext}<extra></extra>",
                         marker=dict(
@@ -1808,9 +1731,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             selected_country_name = self.sort_dropdown_countries.selected_value
 
             country_codes = self.listeners_country_data["country_codes"]
-            monthly_listeners = self.listeners_country_data[
-                "monthly_listeners"
-            ]
+            monthly_listeners = self.listeners_country_data["monthly_listeners"]
             country_name = self.listeners_country_data["country_name"]
 
             # Calculate the range for the current page
@@ -1940,19 +1861,11 @@ class DiscoverAgent(DiscoverAgentTemplate):
                 self.sort_dropdown_countries_2.selected_value = load_var(
                     "sort_dropdown_countries"
                 )
-            selected_country_name = (
-                self.sort_dropdown_countries_2.selected_value
-            )
+            selected_country_name = self.sort_dropdown_countries_2.selected_value
 
-            country_codes = [
-                item["country_code"] for item in self.events_country_data
-            ]
-            no_events = [
-                item["no_events"] for item in self.events_country_data
-            ]
-            country_name = [
-                item["country"] for item in self.events_country_data
-            ]
+            country_codes = [item["country_code"] for item in self.events_country_data]
+            no_events = [item["no_events"] for item in self.events_country_data]
+            country_name = [item["country"] for item in self.events_country_data]
 
             # Calculate the range for the current page
             start_index = (country_page - 1) * items_per_page
@@ -2041,15 +1954,11 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
     def next_page_country_2(self, **event_args):
         if self.current_page < self.total_pages:
-            self.create_events_by_country_bar_chart(
-                country_page=self.current_page + 1
-            )
+            self.create_events_by_country_bar_chart(country_page=self.current_page + 1)
 
     def previous_page_country_2(self, **event_args):
         if self.current_page > 1:
-            self.create_events_by_country_bar_chart(
-                country_page=self.current_page - 1
-            )
+            self.create_events_by_country_bar_chart(country_page=self.current_page - 1)
 
     # MTL LISTENERS by CITY
     def create_monthly_listeners_by_city_bar_chart(
@@ -2062,9 +1971,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         if self.listeners_city_data:
             selected_country_name = self.sort_dropdown_countries.selected_value
 
-            city_w_country_code = self.listeners_city_data[
-                "city_w_country_code"
-            ]
+            city_w_country_code = self.listeners_city_data["city_w_country_code"]
             monthly_listeners = self.listeners_city_data["monthly_listeners"]
             country_name = self.listeners_city_data["country_name_city"]
 
@@ -2073,9 +1980,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             end_index = start_index + items_per_page
 
             # Slice the data for the current page
-            city_w_country_code_page = city_w_country_code[
-                start_index:end_index
-            ]
+            city_w_country_code_page = city_w_country_code[start_index:end_index]
             monthly_listeners_page = monthly_listeners[start_index:end_index]
             country_name_page = country_name[start_index:end_index]
 
@@ -2165,15 +2070,11 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
     def next_page_city(self, **event_args):
         if self.current_page < self.total_pages:
-            self.create_monthly_listeners_by_city_bar_chart(
-                page=self.current_page + 1
-            )
+            self.create_monthly_listeners_by_city_bar_chart(page=self.current_page + 1)
 
     def previous_page_city(self, **event_args):
         if self.current_page > 1:
-            self.create_monthly_listeners_by_city_bar_chart(
-                page=self.current_page - 1
-            )
+            self.create_monthly_listeners_by_city_bar_chart(page=self.current_page - 1)
 
     # EVENTS by CITY
     def create_events_by_city_bar_chart(
@@ -2184,13 +2085,9 @@ class DiscoverAgent(DiscoverAgentTemplate):
         no_events=None,
     ):
         if self.events_city_data:
-            selected_country_name = (
-                self.sort_dropdown_countries_2.selected_value
-            )
+            selected_country_name = self.sort_dropdown_countries_2.selected_value
 
-            city_w_country_code = [
-                item["city_name"] for item in self.events_city_data
-            ]
+            city_w_country_code = [item["city_name"] for item in self.events_city_data]
             no_events = [item["no_events"] for item in self.events_city_data]
             country_name = [item["country"] for item in self.events_city_data]
 
@@ -2199,9 +2096,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             end_index = start_index + items_per_page
 
             # Slice the data for the current page
-            city_w_country_code_page = city_w_country_code[
-                start_index:end_index
-            ]
+            city_w_country_code_page = city_w_country_code[start_index:end_index]
             no_events_page = no_events[start_index:end_index]
             country_name_page = country_name[start_index:end_index]
 
@@ -2352,9 +2247,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         self.Spotify_Popularity_Graph.figure = fig
 
-    def create_artist_followers_scatter_chart(
-        self, dates=None, artist_followers=None
-    ):
+    def create_artist_followers_scatter_chart(self, dates=None, artist_followers=None):
         scatter_data_fol = {
             "dates": [
                 date
@@ -2378,11 +2271,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         # Format the text for the bar annotations
         formatted_text = [
-            (
-                f"{x/1e6:.1f}M"
-                if x >= 1e6
-                else f"{x/1e3:.1f}K" if x >= 1e3 else str(x)
-            )
+            (f"{x/1e6:.1f}M" if x >= 1e6 else f"{x/1e3:.1f}K" if x >= 1e3 else str(x))
             for x in artist_followers
         ]
 
@@ -2436,11 +2325,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         # Format the text for the bar annotations
         formatted_text = [
-            (
-                f"{x/1e6:.1f}M"
-                if x >= 1e6
-                else f"{x/1e3:.1f}K" if x >= 1e3 else str(x)
-            )
+            (f"{x/1e6:.1f}M" if x >= 1e6 else f"{x/1e3:.1f}K" if x >= 1e3 else str(x))
             for x in monthly_listeners
         ]
 
@@ -2498,9 +2383,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         for (
             platform,
             data,
-        ) in (
-            platform_data.items()
-        ):  # Use platform_data instead of self.platform_data
+        ) in platform_data.items():  # Use platform_data instead of self.platform_data
             if data["dates"]:
                 trace = go.Scatter(
                     x=data["dates"],
@@ -2551,9 +2434,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         )
         sorted_labels = [labels[i] for i in sorted_indices]
         sorted_cooperations = [cooperations[i] for i in sorted_indices]
-        self.create_bar_chart(
-            labels=sorted_labels, cooperations=sorted_cooperations
-        )
+        self.create_bar_chart(labels=sorted_labels, cooperations=sorted_cooperations)
 
     def sort_data(self, **event_args):
         sort_option = self.sort_dropdown.selected_value
@@ -2562,9 +2443,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         if sort_option == "alpha":
             # Sort alphabetically
-            sorted_indices = sorted(
-                range(len(labels)), key=lambda i: labels[i]
-            )
+            sorted_indices = sorted(range(len(labels)), key=lambda i: labels[i])
         elif sort_option == "reverse_alpha":
             # Sort reverse alphabetically
             sorted_indices = sorted(
@@ -2590,9 +2469,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         sorted_cooperations = [cooperations[i] for i in sorted_indices]
 
         # Update the bar chart with sorted data
-        self.create_bar_chart(
-            labels=sorted_labels, cooperations=sorted_cooperations
-        )
+        self.create_bar_chart(labels=sorted_labels, cooperations=sorted_cooperations)
 
     # ----------------------------------------------
     # ----------------------------------------------
@@ -2619,9 +2496,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             country = json.loads(self.sug["Countries"])
             countryname = country["CountryName"]
             source = (
-                "https://flagcdn.com/w40/"
-                + country["CountryCode"].lower()
-                + ".png"
+                "https://flagcdn.com/w40/" + country["CountryCode"].lower() + ".png"
             )
         country_flag = Image(source=source, spacing_below=0, spacing_above=0)
         custom_alert_form = C_ArtistBio(
@@ -2795,9 +2670,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         next_artist_id = anvil.server.call("get_next_artist_id", self.model_id)
 
         # 3. Update the URL silently (without triggering navigation)
-        history.replaceState(
-            None, "", f"#agent_artists?artist_id={next_artist_id}"
-        )
+        history.replaceState(None, "", f"#agent_artists?artist_id={next_artist_id}")
 
         # 4. Update the url_dict to reflect the new artist_id
         self.url_dict["artist_id"] = str(next_artist_id)
@@ -2846,9 +2719,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
         # 3. Get basic artist data to retrieve Spotify ID, then start widget immediately
         sug = json.loads(
-            anvil.server.call(
-                "get_suggestion", "Inspect", self.model_id, new_artist_id
-            )
+            anvil.server.call("get_suggestion", "Inspect", self.model_id, new_artist_id)
         )
 
         if sug.get("SpotifyArtistID") and str(new_artist_id) != "None":
@@ -3130,9 +3001,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         )
 
     def drop_down_model_change(self, **event_args):
-        model_data = json.loads(
-            anvil.server.call("get_model_ids", user["user_id"])
-        )
+        model_data = json.loads(anvil.server.call("get_model_ids", user["user_id"]))
         model_id_new = [
             item["model_id"]
             for item in model_data
@@ -3148,9 +3017,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
         )
 
     def drop_down_wl_change(self, **event_args):
-        wl_data = json.loads(
-            anvil.server.call("get_watchlist_ids", user["user_id"])
-        )
+        wl_data = json.loads(anvil.server.call("get_watchlist_ids", user["user_id"]))
         wl_id_new = [
             item["watchlist_id"]
             for item in wl_data
@@ -3170,9 +3037,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
     # -----------------------------------------------------------------------------------------
     def get_watchlist_notes(self, artist_id, **event_args):
         self.repeating_panel_1.items = json.loads(
-            anvil.server.call(
-                "get_watchlist_notes", user["user_id"], artist_id
-            )
+            anvil.server.call("get_watchlist_notes", user["user_id"], artist_id)
         )
 
     def button_note_click(self, **event_args):
@@ -3189,9 +3054,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
 
     def get_watchlist_details(self, artist_id, **event_args):
         details = json.loads(
-            anvil.server.call(
-                "get_watchlist_details", self.watchlist_id, artist_id
-            )
+            anvil.server.call("get_watchlist_details", self.watchlist_id, artist_id)
         )
 
         if details[0]["Description"] is None:
@@ -3358,9 +3221,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
             "get_progress_msg_status", self.model_id, milestone
         )
         if displayed_before is False:
-            anvil.server.call(
-                "update_progress_msg_status", self.model_id, milestone
-            )
+            anvil.server.call("update_progress_msg_status", self.model_id, milestone)
             alert(
                 content=C_ProgressMessage(self.model_id, milestone),
                 buttons=[],
@@ -3373,9 +3234,7 @@ class DiscoverAgent(DiscoverAgentTemplate):
     def ask_for_notification_activation(self, **event_args):
         """Show alert to activate agent notifications if not already active"""
         # Check if notification is already active
-        infos = json.loads(
-            anvil.server.call("get_model_stats", self.model_id)
-        )[0]
+        infos = json.loads(anvil.server.call("get_model_stats", self.model_id))[0]
 
         if not infos.get("is_notification_active", False):
             alert(
