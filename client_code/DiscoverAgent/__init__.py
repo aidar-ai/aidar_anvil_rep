@@ -68,13 +68,25 @@ class DiscoverAgent(DiscoverAgentTemplate):
         # -----------
         # 1. Check if we're in create_agent mode
         if self.url_dict.get("artist_id") == "create_agent":
-            # Check if an agent was already created in this session
+            # Check if a valid agent was already created in this session
             existing_model_id = load_var("model_id")
+            # Only switch to extended mode if we have a valid numeric agent ID
+            # (not None, not "None", and not a random session ID string)
+            is_valid_agent_id = False
             if existing_model_id is not None and existing_model_id != "None":
-                # Agent already exists - switch to extended create mode instead
+                try:
+                    # Check if it's a valid integer (database agent ID)
+                    int(existing_model_id)
+                    is_valid_agent_id = True
+                except (ValueError, TypeError):
+                    # It's a random session ID string, not a valid agent ID
+                    is_valid_agent_id = False
+
+            if is_valid_agent_id:
+                # Valid agent already exists - switch to extended create mode
                 self.call_js("createExtendedAgentView")
             else:
-                # No agent yet - start fresh creation
+                # No valid agent yet - start fresh creation
                 self.call_js("createAgentView")
                 self.call_js("updateModelId", None)
         elif self.url_dict.get("artist_id") == "extended_create_agent":
