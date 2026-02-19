@@ -2420,7 +2420,12 @@
           console.log('[handleCreateAgent] Stored request_id for agent', this.model_id, '->', message.request_id);
         }
 
-
+        // CRITICAL: Transition from CREATE_AGENT to EXTENDED_CREATE_AGENT mode
+        // This prevents subsequent messages from creating new agents
+        if (this.stage === this.STAGE.CREATE_AGENT && message.status === 'ack') {
+          console.log('[handleCreateAgent] Transitioning from CREATE_AGENT to EXTENDED_CREATE_AGENT mode');
+          this.stage = this.STAGE.EXTENDED_CREATE_AGENT;
+        }
 
         // a) update agent navigation (only for acknowledgment message when agent is first created)
         if (message.status === 'ack') {
