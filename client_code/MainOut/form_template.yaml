@@ -53,6 +53,7 @@ components:
     role: top-border
     spacing:
       margin: ['25', null, 0, null]
+    visible: false
   type: ColumnPanel
 - event_bindings: {pressed_enter: button_login_click}
   layout_properties: {slot: password-slot}
